@@ -1,0 +1,55 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: inflightoperations.v0.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: InFlightOperation is the Schema for the operations API
+      displayName: InFlightOperation
+      kind: InFlightOperation
+      name: inflightoperations.ifo.kubevirt.io
+      version: v1alpha1
+    - description: OperationRuleSet is the Schema for the OperationRuleSets API
+      displayName: OperationRuleSet
+      kind: OperationRuleSet
+      name: operationrulesets.ifo.kubevirt.io
+      version: v1alpha1
+  description: This controller provides visibility into cluster activity by generating
+    InFlightOperation resources that track the lifetime of long-running operations.
+  displayName: InFlightOperations
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - monitoring
+  - visibility
+  - inflightoperations
+  links:
+  - name: Inflightoperations
+    url: https://inflightoperations.domain
+  maintainers:
+  - email: slucidi@redhat.com
+    name: Sam Lucidi
+  maturity: alpha
+  provider:
+    name: Sam Lucidi
+  version: 0.0.0

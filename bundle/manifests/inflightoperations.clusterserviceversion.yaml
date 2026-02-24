@@ -1,0 +1,47 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+    createdAt: "2026-02-24T21:48:03Z"
+    operators.operatorframework.io/builder: operator-sdk-v1.42.0
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+  name: inflightoperations.v0.0.1
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions: {}
+  description: This controller provides visibility into cluster activity by generating
+    InFlightOperation resources that track the lifetime of long-running operations.
+  displayName: InFlightOperations
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: []
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - monitoring
+  - visibility
+  - inflightoperations
+  links:
+  - name: Inflightoperations
+    url: https://inflightoperations.domain
+  maintainers:
+  - email: slucidi@redhat.com
+    name: Sam Lucidi
+  maturity: alpha
+  provider:
+    name: Sam Lucidi
+  version: 0.0.1
