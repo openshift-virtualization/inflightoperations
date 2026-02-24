@@ -1,0 +1,8 @@
+gvk:
+  group: kubevirt.io
+  version: v1
+  kind: VirtualMachine
+
+rules:
+  - operation: Starting
+    expression: object.status.printableStatus == "Starting"
