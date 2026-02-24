@@ -1,0 +1,32 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - ifo.kubevirt.io
+  resources:
+  - operationrules
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ifo.kubevirt.io
+  resources:
+  - operationrules/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ifo.kubevirt.io
+  resources:
+  - operationrules/status
+  verbs:
+  - get
+  - patch
+  - update

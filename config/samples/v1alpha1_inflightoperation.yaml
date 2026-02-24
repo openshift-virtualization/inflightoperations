@@ -1,0 +1,9 @@
+apiVersion: ifo.kubevirt.io/v1alpha1
+kind: InFlightOperation
+metadata:
+  labels:
+    app.kubernetes.io/name: inflightoperations
+    app.kubernetes.io/managed-by: kustomize
+  name: operation-sample
+spec:
+  # TODO(user): Add fields here
