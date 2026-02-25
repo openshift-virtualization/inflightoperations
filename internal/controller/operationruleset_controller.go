@@ -54,9 +54,12 @@ type OperationRuleReconciler struct {
 	Evaluator       evaluator.Evaluator
 }
 
-// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=operationrules,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=operationrules/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=operationrules/finalizers,verbs=update
+// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=operationrulesets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=operationrulesets/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=operationrulesets/finalizers,verbs=update
+// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=inflightoperations,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=inflightoperations/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=inflightoperations/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -211,7 +214,7 @@ func (r *OperationRuleReconciler) Initialize(mgr ctrl.Manager) error {
 		r.DiscoveryClient,
 		rules,
 		eval,
-		r.Log,
+		logging.WithName("watcher"),
 	)
 	r.DiscoveryClient = dc
 	r.Evaluator = eval

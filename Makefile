@@ -1,6 +1,8 @@
+VERSION ?= 99.0.0
 # Image URL to use all building/pushing image targets
-IMG ?= quay.io/slucidi/ifo-controller:latest
-
+IMG ?= quay.io/slucidi/ifo-controller:$(VERSION)
+BUNDLE_IMG ?= quay.io/slucidi/ifo-controller-bundle:$(VERSION)
+INDEX_IMG ?= quay.io/slucidi/ifo-controller-index:$(VERSION)
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -115,13 +117,34 @@ run: manifests generate fmt vet ## Run a controller from your host.
 # If you wish to build the manager image targeting other platforms you can use the --platform flag.
 # (i.e. docker build --platform linux/arm64). However, you must enable docker buildKit for it.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
-.PHONY: build-controller
-build-controller: ## Build docker image with the manager.
+.PHONY: build-controller-image
+build-controller-image: ## Build docker image with the manager.
 	$(CONTAINER_TOOL) build -t ${IMG} .
 
-.PHONY: push-controller
-push-controller: ## Push docker image with the manager.
+.PHONY: push-controller-image
+push-controller-image: build-controller-image ## Push docker image with the manager.
 	$(CONTAINER_TOOL) push ${IMG}
+
+.PHONY: bundle
+bundle: kustomize
+	cd config/manager && "$(KUSTOMIZE)" edit set image controller=${IMG}
+	"$(KUSTOMIZE)" build config/default | operator-sdk generate bundle --version $(VERSION) --overwrite
+
+.PHONY: build-bundle-image
+build-bundle-image: bundle
+	$(CONTAINER_TOOL) build -f bundle.Dockerfile -t ${BUNDLE_IMG} .
+
+.PHONY: push-bundle-image
+push-bundle-image: build-bundle-image
+	$(CONTAINER_TOOL) push ${BUNDLE_IMG}
+
+.PHONY: build-index
+build-index: push-bundle-image
+	opm index add --bundles ${BUNDLE_IMG} --tag ${INDEX_IMG} --build-tool podman
+
+.PHONY: push-index
+push-index: build-index
+	$(CONTAINER_TOOL) push ${INDEX_IMG}
 
 .PHONY: build-installer
 build-installer: manifests generate kustomize ## Generate a consolidated YAML with CRDs and deployment.

@@ -5,4 +5,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: quay.io/slucidi/ifo-controller
-  newTag: latest
+  newTag: 99.0.0

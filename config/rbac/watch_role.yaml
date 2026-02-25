@@ -1,0 +1,17 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: watch-role
+rules:
+  - apiGroups:
+      - cdi.kubevirt.io
+      - kubevirt.io
+      - operators.coreos.com
+      - "apps"
+    verbs:
+      - get
+      - list
+      - watch
+    resources:
+      - "*"

@@ -1,0 +1,20 @@
+apiVersion: ifo.kubevirt.io/v1alpha1
+kind: OperationRuleSet
+metadata:
+  name: subscription-rules
+spec:
+  target:
+    group: operators.coreos.com
+    version: v1alpha1
+    kind: Subscription
+  rules:
+    - operation: Unpacking
+      expression: |
+        has(object.status) &&
+        has(object.status.conditions) &&
+        object.status.conditions.exists(c, c.type == "BundleUnpacking")
+    - operation: InstallPlanPending
+      expression: |
+        has(object.status) &&
+        has(object.status.conditions) &&
+        object.status.conditions.exists(c, c.type == "InstallPlanPending")

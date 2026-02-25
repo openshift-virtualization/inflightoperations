@@ -166,7 +166,7 @@ func (r *Watcher) handle(obj any, gvk schema.GroupVersionKind) (err error) {
 		return
 	}
 	for _, op := range list.Items {
-		if !op.Complete() {
+		if !op.PastDebounceThreshold() {
 			_, found := detected[op.Spec.Operation]
 			if !found {
 				op.MarkCompleted(subject)

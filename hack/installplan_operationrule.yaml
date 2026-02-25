@@ -1,0 +1,28 @@
+apiVersion: ifo.kubevirt.io/v1alpha1
+kind: OperationRuleSet
+metadata:
+  name: installplan-rules
+spec:
+  target:
+    group: operators.coreos.com
+    version: v1alpha1
+    kind: InstallPlan
+  rules:
+    - operation: Planning
+      expression: |
+        has(object.status) &&
+        has(object.status.phase) &&
+        object.status.phase == "Planning"
+
+    - operation: Installing
+      expression: |
+        has(object.status) &&
+        has(object.status.phase) &&
+        object.status.phase == "Installing"
+
+    - operation: RequiresApproval
+      expression: |
+        has(object.status) &&
+        has(object.status.phase) &&
+        object.status.phase == "RequiresApproval"
+

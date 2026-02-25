@@ -6,5 +6,7 @@
 !internal
 !lib
 !settings
+!bundle
 !go.mod
 !go.sum
+!index_build*

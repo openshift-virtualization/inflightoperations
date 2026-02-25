@@ -1,6 +1,5 @@
 ## Append samples of your project ##
 resources:
-- v1alpha1_operation.yaml
-- v1alpha1_operationrule.yaml
-- v1alpha1_clusteroperation.yaml
+- v1alpha1_inflightoperation.yaml
+- v1alpha1_operationruleset.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

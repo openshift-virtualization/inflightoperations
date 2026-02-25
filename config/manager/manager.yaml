@@ -63,7 +63,7 @@ spec:
         args:
           - --leader-elect
           - --health-probe-bind-address=:8081
-        image: quay.io/slucidi/ifo-controller:v0.1.0
+        image: controller
         name: manager
         ports: []
         securityContext:

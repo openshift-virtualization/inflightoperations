@@ -4,23 +4,189 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    createdAt: "2026-02-24T21:48:03Z"
+    createdAt: "2026-02-25T19:11:57Z"
     operators.operatorframework.io/builder: operator-sdk-v1.42.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
-  name: inflightoperations.v0.0.1
+  name: inflightoperations.v99.0.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
-  customresourcedefinitions: {}
-  description: This controller provides visibility into cluster activity by generating
-    InFlightOperation resources that track the lifetime of long-running operations.
-  displayName: InFlightOperations
+  customresourcedefinitions:
+    owned:
+    - kind: InFlightOperation
+      name: inflightoperations.ifo.kubevirt.io
+      version: v1alpha1
+    - kind: OperationRuleSet
+      name: operationrulesets.ifo.kubevirt.io
+      version: v1alpha1
+  description: Inflightoperations description. TODO.
+  displayName: Inflightoperations
   icon:
   - base64data: ""
     mediatype: ""
   install:
     spec:
-      deployments: []
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ifo.kubevirt.io
+          resources:
+          - inflightoperations
+          - operationrulesets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ifo.kubevirt.io
+          resources:
+          - inflightoperations/finalizers
+          - operationrulesets/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - ifo.kubevirt.io
+          resources:
+          - inflightoperations/status
+          - operationrulesets/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - cdi.kubevirt.io
+          - kubevirt.io
+          - operators.coreos.com
+          - apps
+          resources:
+          - '*'
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        - apiGroups:
+          - cdi.kubevirt.io
+          - kubevirt.io
+          - operators.coreos.com
+          - apps
+          resources:
+          - '*'
+          verbs:
+          - get
+          - list
+          - watch
+        serviceAccountName: inflightoperations-controller-manager
+      deployments:
+      - label:
+          app.kubernetes.io/managed-by: kustomize
+          app.kubernetes.io/name: inflightoperations
+          control-plane: controller-manager
+        name: inflightoperations-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app.kubernetes.io/name: inflightoperations
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
+              labels:
+                app.kubernetes.io/name: inflightoperations
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --metrics-bind-address=:8443
+                - --leader-elect
+                - --health-probe-bind-address=:8081
+                command:
+                - /manager
+                image: quay.io/slucidi/ifo-controller:99.0.0
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 10m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                  readOnlyRootFilesystem: true
+              securityContext:
+                runAsNonRoot: true
+                seccompProfile:
+                  type: RuntimeDefault
+              serviceAccountName: inflightoperations-controller-manager
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: inflightoperations-controller-manager
     strategy: deployment
   installModes:
   - supported: false
@@ -32,16 +198,15 @@ spec:
   - supported: true
     type: AllNamespaces
   keywords:
-  - monitoring
-  - visibility
   - inflightoperations
   links:
   - name: Inflightoperations
     url: https://inflightoperations.domain
   maintainers:
-  - email: slucidi@redhat.com
-    name: Sam Lucidi
+  - email: your@email.com
+    name: Maintainer Name
   maturity: alpha
   provider:
-    name: Sam Lucidi
-  version: 0.0.1
+    name: Provider Name
+    url: https://your.domain
+  version: 99.0.0

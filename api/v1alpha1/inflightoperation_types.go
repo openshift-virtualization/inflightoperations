@@ -106,9 +106,10 @@ type InFlightOperationStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,shortName=ifo;ifos
+// +kubebuilder:printcolumn:name="Namespace",type=string,JSONPath=`.spec.subject.namespace`
+// +kubebuilder:printcolumn:name="Subject",type=string,JSONPath=`.spec.subject.kind`
+// +kubebuilder:printcolumn:name="Resource",type=string,JSONPath=`.spec.subject.name`
 // +kubebuilder:printcolumn:name="Operation",type=string,JSONPath=`.spec.operation`
-// +kubebuilder:printcolumn:name="Subject",type=string,JSONPath=`.spec.subjectRef.kind`
-// +kubebuilder:printcolumn:name="Resource",type=string,JSONPath=`.spec.subjectRef.name`
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Started",type=string,JSONPath=`.metadata.creationTimestamp`
 // +kubebuilder:printcolumn:name="Completed",type=string,JSONPath=`.status.completed`
@@ -143,6 +144,7 @@ func (r *InFlightOperation) MarkDetection(subject *Subject, detectedBy []string)
 	r.Status.LastDetected = &now
 	r.Status.SubjectGeneration = subject.GetGeneration()
 	r.Status.DetectedBy = detectedBy
+	r.Status.Completed = nil
 }
 
 func (r *InFlightOperation) Complete() bool {

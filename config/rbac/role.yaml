@@ -7,7 +7,8 @@ rules:
 - apiGroups:
   - ifo.kubevirt.io
   resources:
-  - operationrules
+  - inflightoperations
+  - operationrulesets
   verbs:
   - create
   - delete
@@ -19,14 +20,27 @@ rules:
 - apiGroups:
   - ifo.kubevirt.io
   resources:
-  - operationrules/finalizers
+  - inflightoperations/finalizers
+  - operationrulesets/finalizers
   verbs:
   - update
 - apiGroups:
   - ifo.kubevirt.io
   resources:
-  - operationrules/status
+  - inflightoperations/status
+  - operationrulesets/status
   verbs:
   - get
   - patch
   - update
+- apiGroups:
+  - cdi.kubevirt.io
+  - kubevirt.io
+  - operators.coreos.com
+  - "apps"
+  verbs:
+    - get
+    - list
+    - watch
+  resources:
+    - "*"
