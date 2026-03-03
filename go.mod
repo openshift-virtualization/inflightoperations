@@ -1,4 +1,4 @@
-module github.com/mansam/inflightoperations
+module github.com/ifo-operator/inflightoperations
 
 go 1.25.3
 

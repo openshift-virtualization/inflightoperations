@@ -27,7 +27,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	api "github.com/mansam/inflightoperations/api/v1alpha1"
+	api "github.com/ifo-operator/inflightoperations/api/v1alpha1"
 )
 
 var _ = Describe("OperationRuleSet Controller", func() {

@@ -3,9 +3,9 @@ package evaluator
 import (
 	"fmt"
 
-	api "github.com/mansam/inflightoperations/api/v1alpha1"
-	"github.com/mansam/inflightoperations/internal/rules"
-	liberr "github.com/mansam/inflightoperations/lib/error"
+	api "github.com/ifo-operator/inflightoperations/api/v1alpha1"
+	"github.com/ifo-operator/inflightoperations/internal/rules"
+	liberr "github.com/ifo-operator/inflightoperations/lib/error"
 )
 
 type Result struct {

@@ -3,7 +3,7 @@ package controller
 import (
 	"time"
 
-	"github.com/mansam/inflightoperations/lib/logging"
+	"github.com/ifo-operator/inflightoperations/lib/logging"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

@@ -1,10 +1,10 @@
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
-  name: ifo-catalog
+  name: ifo-dev-catalog
   namespace: openshift-marketplace
 spec:
-  displayName: IFO Catalog
-  image: quay.io/slucidi/ifo-controller-index:99.0.0
+  displayName: IFO Dev Catalog
+  image: quay.io/ifo-operator/controller-index:99.0.0
   publisher: Sam Lucidi
   sourceType: grpc

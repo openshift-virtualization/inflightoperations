@@ -3,11 +3,11 @@ package watch
 import (
 	"context"
 
-	api "github.com/mansam/inflightoperations/api/v1alpha1"
-	"github.com/mansam/inflightoperations/internal/evaluator"
-	liberr "github.com/mansam/inflightoperations/lib/error"
-	"github.com/mansam/inflightoperations/lib/logging"
-	"github.com/mansam/inflightoperations/settings"
+	api "github.com/ifo-operator/inflightoperations/api/v1alpha1"
+	"github.com/ifo-operator/inflightoperations/internal/evaluator"
+	liberr "github.com/ifo-operator/inflightoperations/lib/error"
+	"github.com/ifo-operator/inflightoperations/lib/logging"
+	"github.com/ifo-operator/inflightoperations/settings"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"

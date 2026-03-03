@@ -3,7 +3,7 @@ package evaluator
 import (
 	"testing"
 
-	"github.com/mansam/inflightoperations/internal/rules"
+	"github.com/ifo-operator/inflightoperations/internal/rules"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 

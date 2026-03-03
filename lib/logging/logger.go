@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/go-logr/logr"
-	liberr "github.com/mansam/inflightoperations/lib/error"
+	liberr "github.com/ifo-operator/inflightoperations/lib/error"
 )
 
 const (

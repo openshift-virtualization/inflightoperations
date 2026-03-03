@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"slices"
 
-	api "github.com/mansam/inflightoperations/api/v1alpha1"
-	liberr "github.com/mansam/inflightoperations/lib/error"
-	"github.com/mansam/inflightoperations/lib/logging"
+	api "github.com/ifo-operator/inflightoperations/api/v1alpha1"
+	liberr "github.com/ifo-operator/inflightoperations/lib/error"
+	"github.com/ifo-operator/inflightoperations/lib/logging"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8slabels "k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"

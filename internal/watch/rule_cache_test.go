@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/mansam/inflightoperations/api/v1alpha1"
+	"github.com/ifo-operator/inflightoperations/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )

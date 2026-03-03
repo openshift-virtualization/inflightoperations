@@ -22,8 +22,8 @@ import (
 	"os"
 
 	"github.com/go-logr/logr"
-	"github.com/mansam/inflightoperations/lib/logging"
-	"github.com/mansam/inflightoperations/settings"
+	"github.com/ifo-operator/inflightoperations/lib/logging"
+	"github.com/ifo-operator/inflightoperations/settings"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -42,8 +42,8 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	api "github.com/mansam/inflightoperations/api/v1alpha1"
-	"github.com/mansam/inflightoperations/internal/controller"
+	api "github.com/ifo-operator/inflightoperations/api/v1alpha1"
+	"github.com/ifo-operator/inflightoperations/internal/controller"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -175,7 +175,7 @@ func main() {
 		WebhookServer:          webhookServer,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "21f1c3a5.ifo.kubevirt.io",
+		LeaderElectionID:       "21f1c3a5.ifo-operator.org",
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
 		// when the Manager ends. This requires the binary to immediately end when the
 		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly

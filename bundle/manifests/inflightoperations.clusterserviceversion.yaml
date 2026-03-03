@@ -14,10 +14,10 @@ spec:
   customresourcedefinitions:
     owned:
     - kind: InFlightOperation
-      name: inflightoperations.ifo.kubevirt.io
+      name: inflightoperations.ifo-operator.org
       version: v1alpha1
     - kind: OperationRuleSet
-      name: operationrulesets.ifo.kubevirt.io
+      name: operationrulesets.ifo-operator.org
       version: v1alpha1
   description: Inflightoperations description. TODO.
   displayName: Inflightoperations
@@ -29,7 +29,7 @@ spec:
       clusterPermissions:
       - rules:
         - apiGroups:
-          - ifo.kubevirt.io
+          - ifo-operator.org
           resources:
           - inflightoperations
           - operationrulesets
@@ -42,14 +42,14 @@ spec:
           - update
           - watch
         - apiGroups:
-          - ifo.kubevirt.io
+          - ifo-operator.org
           resources:
           - inflightoperations/finalizers
           - operationrulesets/finalizers
           verbs:
           - update
         - apiGroups:
-          - ifo.kubevirt.io
+          - ifo-operator.org
           resources:
           - inflightoperations/status
           - operationrulesets/status

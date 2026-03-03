@@ -20,8 +20,8 @@ import (
 	"path"
 	"sync"
 
-	"github.com/mansam/inflightoperations/api/v1alpha1"
-	"github.com/mansam/inflightoperations/internal/rules"
+	"github.com/ifo-operator/inflightoperations/api/v1alpha1"
+	"github.com/ifo-operator/inflightoperations/internal/rules"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 

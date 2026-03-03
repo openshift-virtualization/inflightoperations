@@ -1,12 +1,12 @@
 package v1alpha1
 
 import (
-	libcnd "github.com/mansam/inflightoperations/lib/condition"
+	libcnd "github.com/ifo-operator/inflightoperations/lib/condition"
 )
 
 // Finalizers
 const (
-	OperationRuleSetFinalizer = "ifo.kubevirt.io/finalizer"
+	OperationRuleSetFinalizer = "ifo-operator.org/finalizer"
 )
 
 // Reasons

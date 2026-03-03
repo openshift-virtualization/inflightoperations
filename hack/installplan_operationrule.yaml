@@ -1,4 +1,4 @@
-apiVersion: ifo.kubevirt.io/v1alpha1
+apiVersion: ifo-operator.org/v1alpha1
 kind: OperationRuleSet
 metadata:
   name: installplan-rules

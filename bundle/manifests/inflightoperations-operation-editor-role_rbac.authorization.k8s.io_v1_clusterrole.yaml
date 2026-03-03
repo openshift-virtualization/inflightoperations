@@ -8,7 +8,7 @@ metadata:
   name: inflightoperations-operation-editor-role
 rules:
 - apiGroups:
-  - ifo.kubevirt.io
+  - ifo-operator.org
   resources:
   - operations
   verbs:
@@ -20,7 +20,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - ifo.kubevirt.io
+  - ifo-operator.org
   resources:
   - operations/status
   verbs:

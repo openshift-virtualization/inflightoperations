@@ -19,8 +19,8 @@ package v1alpha1
 import (
 	"time"
 
-	libcnd "github.com/mansam/inflightoperations/lib/condition"
-	"github.com/mansam/inflightoperations/settings"
+	libcnd "github.com/ifo-operator/inflightoperations/lib/condition"
+	"github.com/ifo-operator/inflightoperations/settings"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )

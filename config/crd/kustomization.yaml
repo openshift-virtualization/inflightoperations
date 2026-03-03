@@ -2,8 +2,8 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/ifo.kubevirt.io_inflightoperations.yaml
-- bases/ifo.kubevirt.io_operationrulesets.yaml
+- bases/ifo-operator.org_inflightoperations.yaml
+- bases/ifo-operator.org_operationrulesets.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:
@@ -12,7 +12,7 @@ patches:
       group: apiextensions.k8s.io
       version: v1
       kind: CustomResourceDefinition
-      name: inflightoperations.ifo.kubevirt.io
+      name: inflightoperations.ifo-operator.org
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
 # patches here are for enabling the conversion webhook for each CRD
 # +kubebuilder:scaffold:crdkustomizewebhookpatch

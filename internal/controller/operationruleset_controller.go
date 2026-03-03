@@ -20,11 +20,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mansam/inflightoperations/internal/evaluator"
-	"github.com/mansam/inflightoperations/internal/watch"
-	libcnd "github.com/mansam/inflightoperations/lib/condition"
-	liberr "github.com/mansam/inflightoperations/lib/error"
-	"github.com/mansam/inflightoperations/lib/logging"
+	"github.com/ifo-operator/inflightoperations/internal/evaluator"
+	"github.com/ifo-operator/inflightoperations/internal/watch"
+	libcnd "github.com/ifo-operator/inflightoperations/lib/condition"
+	liberr "github.com/ifo-operator/inflightoperations/lib/error"
+	"github.com/ifo-operator/inflightoperations/lib/logging"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	api "github.com/mansam/inflightoperations/api/v1alpha1"
+	api "github.com/ifo-operator/inflightoperations/api/v1alpha1"
 )
 
 const (
@@ -54,12 +54,12 @@ type OperationRuleReconciler struct {
 	Evaluator       evaluator.Evaluator
 }
 
-// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=operationrulesets,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=operationrulesets/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=operationrulesets/finalizers,verbs=update
-// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=inflightoperations,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=inflightoperations/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=inflightoperations/finalizers,verbs=update
+// +kubebuilder:rbac:groups=ifo-operator.org,resources=operationrulesets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=ifo-operator.org,resources=operationrulesets/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=ifo-operator.org,resources=operationrulesets/finalizers,verbs=update
+// +kubebuilder:rbac:groups=ifo-operator.org,resources=inflightoperations,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=ifo-operator.org,resources=inflightoperations/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=ifo-operator.org,resources=inflightoperations/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
