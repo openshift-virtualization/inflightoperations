@@ -3,6 +3,7 @@ kind: OperationRuleSet
 metadata:
   name: datavolume-rules
 spec:
+  component: kubevirt
   target:
     group: cdi.kubevirt.io
     version: v1beta1

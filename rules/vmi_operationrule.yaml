@@ -3,6 +3,7 @@ kind: OperationRuleSet
 metadata:
   name: vmi-rules
 spec:
+  component: kubevirt
   target:
     group: kubevirt.io
     version: v1

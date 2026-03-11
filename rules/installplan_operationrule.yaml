@@ -3,6 +3,7 @@ kind: OperationRuleSet
 metadata:
   name: installplan-rules
 spec:
+  component: olm
   target:
     group: operators.coreos.com
     version: v1alpha1
