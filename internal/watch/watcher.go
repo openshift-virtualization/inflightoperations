@@ -194,23 +194,6 @@ func (r *Watcher) handle(obj any, gvk schema.GroupVersionKind) (err error) {
 	return
 }
 
-func (r *Watcher) markCompleted(ctx context.Context, subject *api.Subject, ifo *api.InFlightOperation) {
-	ifo.MarkCompleted(subject)
-	err := r.client.Status().Update(ctx, ifo)
-	if err != nil {
-		err = liberr.Wrap(err)
-		r.log.Error(err, "Failed to update operation status", "subject", subject.GetName(), "namespace", subject.GetNamespace(), "ifo", ifo.Name)
-	}
-}
-
-func (r *Watcher) cleanupCompleted(ctx context.Context, ifo *api.InFlightOperation) {
-	err := r.client.Delete(ctx, ifo)
-	if err != nil {
-		err = liberr.Wrap(err)
-		r.log.Error(err, "Unable to cleanup completed IFO", "ifo", ifo.GetName())
-	}
-}
-
 func (r *Watcher) handleDelete(obj any, _ schema.GroupVersionKind) (err error) {
 	subject, ok := obj.(*api.Subject)
 	if !ok {
@@ -223,4 +206,26 @@ func (r *Watcher) handleDelete(obj any, _ schema.GroupVersionKind) (err error) {
 		return
 	}
 	return
+}
+
+// markCompleted makes a best-effort attempt to mark an IFO completed.
+func (r *Watcher) markCompleted(ctx context.Context, subject *api.Subject, ifo *api.InFlightOperation) {
+	ifo.MarkCompleted(subject)
+	err := r.client.Status().Update(ctx, ifo)
+	if err != nil {
+		err = liberr.Wrap(err)
+		r.log.Error(err, "Failed to update operation status", "subject", subject.GetName(), "namespace", subject.GetNamespace(), "ifo", ifo.Name)
+	}
+}
+
+// cleanupCompleted makes a best-effort attempt to remove an IFO.
+func (r *Watcher) cleanupCompleted(ctx context.Context, ifo *api.InFlightOperation) {
+	if Settings.RetainCompletedIFOs {
+		return
+	}
+	err := r.client.Delete(ctx, ifo)
+	if err != nil {
+		err = liberr.Wrap(err)
+		r.log.Error(err, "Unable to cleanup completed IFO", "ifo", ifo.GetName())
+	}
 }

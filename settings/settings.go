@@ -14,6 +14,7 @@ const (
 	EnvInformerSyncTimeout = "INFORMER_SYNC_TIMEOUT"
 	EnvK8SAPITimeout       = "K8S_API_TIMEOUT"
 	EnvK8SInformerResync   = "K8S_INFORMER_RESYNC"
+	EnvRetainCompletedIFOs = "RETAIN_COMPLETED_IFOS"
 )
 
 // Defaults
@@ -38,6 +39,7 @@ type ControllerSettings struct {
 	InformerSyncTimeout time.Duration
 	K8SAPITimeout       time.Duration
 	K8SInformerResync   time.Duration
+	RetainCompletedIFOs bool
 }
 
 func (r *ControllerSettings) Load() (err error) {
@@ -57,6 +59,10 @@ func (r *ControllerSettings) Load() (err error) {
 	if err != nil {
 		return
 	}
+	r.RetainCompletedIFOs, err = LookupBool(EnvRetainCompletedIFOs, false)
+	if err != nil {
+		return
+	}
 	return
 }
 
@@ -67,6 +73,19 @@ func LookupInt(envvar string, def int) (val int, err error) {
 		return
 	}
 	val, err = strconv.Atoi(str)
+	if err != nil {
+		err = liberr.Wrap(err, "var", envvar)
+		return
+	}
+	return
+}
+
+func LookupBool(envvar string, def bool) (val bool, err error) {
+	str, found := os.LookupEnv(envvar)
+	if !found {
+		val = def
+	}
+	val, err = strconv.ParseBool(str)
 	if err != nil {
 		err = liberr.Wrap(err, "var", envvar)
 		return
