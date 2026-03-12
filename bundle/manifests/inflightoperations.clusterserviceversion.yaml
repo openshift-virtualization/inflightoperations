@@ -4,7 +4,7 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    createdAt: "2026-03-04T03:05:29Z"
+    createdAt: "2026-03-12T03:13:48Z"
     operators.operatorframework.io/builder: operator-sdk-v1.42.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
   name: inflightoperations.v99.0.0
@@ -58,17 +58,6 @@ spec:
           - patch
           - update
         - apiGroups:
-          - cdi.kubevirt.io
-          - kubevirt.io
-          - operators.coreos.com
-          - apps
-          resources:
-          - '*'
-          verbs:
-          - get
-          - list
-          - watch
-        - apiGroups:
           - authentication.k8s.io
           resources:
           - tokenreviews
@@ -81,10 +70,11 @@ spec:
           verbs:
           - create
         - apiGroups:
-          - cdi.kubevirt.io
-          - kubevirt.io
-          - operators.coreos.com
           - apps
+          - kubevirt.io
+          - cdi.kubevirt.io
+          - hco.kubevirt.io
+          - operators.coreos.com
           resources:
           - '*'
           verbs:

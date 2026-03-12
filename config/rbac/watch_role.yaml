@@ -5,10 +5,11 @@ metadata:
   name: watch-role
 rules:
   - apiGroups:
-      - cdi.kubevirt.io
+      - apps
       - kubevirt.io
+      - cdi.kubevirt.io
+      - hco.kubevirt.io
       - operators.coreos.com
-      - "apps"
     verbs:
       - get
       - list

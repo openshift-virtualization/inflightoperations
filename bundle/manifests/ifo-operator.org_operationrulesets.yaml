@@ -11,8 +11,10 @@ spec:
     kind: OperationRuleSet
     listKind: OperationRuleSetList
     plural: operationrulesets
+    shortNames:
+    - ors
     singular: operationruleset
-  scope: Namespaced
+  scope: Cluster
   versions:
   - name: v1alpha1
     schema:
@@ -39,6 +41,21 @@ spec:
           spec:
             description: spec defines the desired state of OperationRuleSet
             properties:
+              component:
+                description: Component is the name of the component this rule belongs
+                  to, e.g. KubeVirt or Forklift.
+                type: string
+              labelExpressions:
+                description: LabelExpressions are evaluated to dynamically assign
+                  labels to IFOs.
+                items:
+                  type: string
+                type: array
+              labels:
+                additionalProperties:
+                  type: string
+                description: Labels to attach to all IFOs created by this ruleset.
+                type: object
               namespaces:
                 description: |-
                   Namespaces determines which namespaces to watch
