@@ -56,6 +56,10 @@ type OperationRuleSetSpec struct {
 	// The following markers will use OpenAPI v3 schema to validate the value
 	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
 
+	// Component is the name of the component this rule belongs to, e.g. KubeVirt or Forklift.
+	// +optional
+	Component string `json:"component,omitempty"`
+
 	// Target specifies which Kubernetes resource type to watch
 	// +kubebuilder:validation:Required
 	Target GroupVersionKind `json:"target"`
@@ -69,6 +73,12 @@ type OperationRuleSetSpec struct {
 	// If empty, watches all namespaces
 	// +optional
 	Namespaces []string `json:"namespaces,omitempty"`
+
+	// Labels to attach to all IFOs created by this ruleset.
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
+	// LabelExpressions are evaluated to dynamically assign labels to IFOs.
+	LabelExpressions []string `json:"labelExpressions,omitempty"`
 }
 
 // OperationRuleSetStatus defines the observed state of OperationRuleSet.
@@ -89,6 +99,7 @@ type OperationRuleSetStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Cluster,shortName=ors
 
 // OperationRuleSet is the Schema for the OperationRuleSets API
 type OperationRuleSet struct {

@@ -59,6 +59,8 @@ type SubjectReference struct {
 	// UID is the UID of the resource for strong reference
 	// +optional
 	UID string `json:"uid,omitempty"`
+
+	OwnerReferences []metav1.OwnerReference `json:"ownerReferences,omitempty"`
 }
 
 // InFlightOperationSpec defines the desired state of InFlightOperation
@@ -67,6 +69,10 @@ type InFlightOperationSpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	Operation string `json:"operation"`
+
+	RuleSet string `json:"ruleSet"`
+
+	Component string `json:"component"`
 
 	// Subject references the resource performing the operation.
 	// +kubebuilder:validation:Required
