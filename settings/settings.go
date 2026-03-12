@@ -15,6 +15,7 @@ const (
 	EnvK8SAPITimeout       = "K8S_API_TIMEOUT"
 	EnvK8SInformerResync   = "K8S_INFORMER_RESYNC"
 	EnvRetainCompletedIFOs = "RETAIN_COMPLETED_IFOS"
+	EnvRequeueInterval     = "REQUEUE_INTERVAL"
 )
 
 // Defaults
@@ -23,6 +24,7 @@ const (
 	DefaultInformerSyncTimeout = 30
 	DefaultK8SAPITimeout       = 30
 	DefaultK8SInformerResync   = 30
+	DefaultRequeueInterval     = 60
 )
 
 var Settings ControllerSettings
@@ -40,6 +42,7 @@ type ControllerSettings struct {
 	K8SAPITimeout       time.Duration
 	K8SInformerResync   time.Duration
 	RetainCompletedIFOs bool
+	RequeueInterval     time.Duration
 }
 
 func (r *ControllerSettings) Load() (err error) {
@@ -60,6 +63,10 @@ func (r *ControllerSettings) Load() (err error) {
 		return
 	}
 	r.RetainCompletedIFOs, err = LookupBool(EnvRetainCompletedIFOs, false)
+	if err != nil {
+		return
+	}
+	r.RequeueInterval, err = LookupSeconds(EnvRequeueInterval, DefaultRequeueInterval)
 	if err != nil {
 		return
 	}
