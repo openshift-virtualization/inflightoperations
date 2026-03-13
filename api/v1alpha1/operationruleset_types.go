@@ -22,8 +22,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// GroupVersionKind identifies a Kubernetes resource type
-type GroupVersionKind struct {
+// GroupVersionResource identifies a Kubernetes resource type
+type GroupVersionResource struct {
 	// Group is the API group of the resource
 	// Empty string for core resources
 	// +kubebuilder:validation:Required
@@ -33,9 +33,9 @@ type GroupVersionKind struct {
 	// +kubebuilder:validation:Required
 	Version string `json:"version"`
 
-	// Kind is the kind of the resource
+	// Resource is the plural name of the resource
 	// +kubebuilder:validation:Required
-	Kind string `json:"kind"`
+	Resource string `json:"resource"`
 }
 
 // Rule represents a single CEL evaluation rule
@@ -62,7 +62,7 @@ type OperationRuleSetSpec struct {
 
 	// Target specifies which Kubernetes resource type to watch
 	// +kubebuilder:validation:Required
-	Target GroupVersionKind `json:"target"`
+	Target GroupVersionResource `json:"target"`
 
 	// Rules contains the CEL expressions to evaluate
 	// +kubebuilder:validation:MinItems=1
@@ -122,11 +122,11 @@ func (r *OperationRuleSet) Rules() []Rule {
 	return r.Spec.Rules
 }
 
-func (r *OperationRuleSet) GVK() schema.GroupVersionKind {
-	return schema.GroupVersionKind{
-		Group:   r.Spec.Target.Group,
-		Version: r.Spec.Target.Version,
-		Kind:    r.Spec.Target.Kind,
+func (r *OperationRuleSet) GVR() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    r.Spec.Target.Group,
+		Version:  r.Spec.Target.Version,
+		Resource: r.Spec.Target.Resource,
 	}
 }
 
@@ -140,7 +140,7 @@ func (r *OperationRuleSet) AppliesTo(subject *Subject) bool {
 }
 
 func (r *OperationRuleSet) Key() string {
-	return r.GVK().String()
+	return r.GVR().String()
 }
 
 // +kubebuilder:object:root=true

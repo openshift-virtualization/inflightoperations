@@ -7,7 +7,7 @@ spec:
   target:
     group: kubevirt.io
     version: v1
-    kind: VirtualMachineInstance
+    resource: virtualmachineinstances
   rules:
     # === Lifecycle Phases ===
     - operation: Pending

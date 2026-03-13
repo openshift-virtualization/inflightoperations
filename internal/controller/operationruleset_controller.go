@@ -125,7 +125,7 @@ func (r *OperationRuleSetReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	} else {
 		err = r.Setup(ctx, operationRule)
 		if err != nil {
-			r.Log.Error(err, "Failed to ensure watch", "gvk", operationRule.GVK().String())
+			r.Log.Error(err, "Failed to ensure watch", "gvr", operationRule.GVR().String())
 			operationRule.Status.SetCondition(libcnd.Condition{
 				Type:    api.TypeWatchFailed,
 				Status:  api.True,
@@ -140,7 +140,7 @@ func (r *OperationRuleSetReconciler) Reconcile(ctx context.Context, req ctrl.Req
 					Status:   api.True,
 					Category: api.CategoryRequired,
 					Reason:   api.ReasonWatchActive,
-					Message:  fmt.Sprintf("Dynamic watch is active for %s", operationRule.GVK().String()),
+					Message:  fmt.Sprintf("Dynamic watch is active for %s", operationRule.GVR().String()),
 				})
 		}
 	}
@@ -155,19 +155,19 @@ func (r *OperationRuleSetReconciler) Reconcile(ctx context.Context, req ctrl.Req
 }
 
 func (r *OperationRuleSetReconciler) Validate(ctx context.Context, rule *api.OperationRuleSet) error {
-	err := r.validateTargetGVK(rule)
+	err := r.validateTargetGVR(rule)
 	if err != nil {
-		r.Log.Error(err, "Invalid target GVK", "gvk", rule.GVK().String())
+		r.Log.Error(err, "Invalid target GVR", "gvr", rule.GVR().String())
 		rule.Status.SetCondition(libcnd.Condition{
 			Type:     api.TypeInvalidTarget,
 			Status:   api.True,
-			Reason:   api.ReasonGVKNotFound,
+			Reason:   api.ReasonGVRNotFound,
 			Category: api.CategoryCritical,
-			Message:  fmt.Sprintf("Target GVK does not exist: %v", err),
+			Message:  fmt.Sprintf("Target GVR does not exist: %v", err),
 		})
 	}
 
-	err = r.validateCELExpressions(rule)
+	err = r.validateExpressions(rule)
 	if err != nil {
 		r.Log.Error(err, "Invalid CEL expressions")
 		rule.Status.SetCondition(libcnd.Condition{
@@ -195,7 +195,7 @@ func (r *OperationRuleSetReconciler) Validate(ctx context.Context, rule *api.Ope
 
 func (r *OperationRuleSetReconciler) Setup(_ context.Context, rule *api.OperationRuleSet) error {
 	r.Rules.AddOrUpdateRule(rule)
-	err := r.Watcher.Register(rule.GVK())
+	err := r.Watcher.Register(rule.GVR())
 	if err != nil {
 		return err
 	}
@@ -224,7 +224,6 @@ func (r *OperationRuleSetReconciler) Initialize(mgr ctrl.Manager) error {
 	watcher := watch.NewWatcher(
 		r.Client,
 		r.DynamicClient,
-		r.DiscoveryClient,
 		rules,
 		eval,
 		logging.WithName("watcher"),
@@ -235,7 +234,7 @@ func (r *OperationRuleSetReconciler) Initialize(mgr ctrl.Manager) error {
 	r.Watcher = watcher
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&api.OperationRuleSet{}).
-		Named("operationrule").
+		Named(Name).
 		Complete(r)
 }
 
@@ -263,39 +262,30 @@ func (r *OperationRuleSetReconciler) RemoveFinalizer(ctx context.Context, rule *
 	return
 }
 
-// validateTargetGVK checks if the specified GVK exists using discovery
-func (r *OperationRuleSetReconciler) validateTargetGVK(or *api.OperationRuleSet) error {
+// validateTargetGVR checks if the specified GVR exists using discovery
+func (r *OperationRuleSetReconciler) validateTargetGVR(or *api.OperationRuleSet) error {
 	// Get all API resources for the group/version
-	gvk := or.GVK()
-	resourceList, err := r.DiscoveryClient.ServerResourcesForGroupVersion(gvk.GroupVersion().String())
+	gvr := or.GVR()
+	resourceList, err := r.DiscoveryClient.ServerResourcesForGroupVersion(gvr.GroupVersion().String())
 	if err != nil {
-		return fmt.Errorf("failed to discover resources for %s: %w", gvk.GroupVersion().String(), err)
+		return fmt.Errorf("failed to discover resources for %s: %w", gvr.GroupVersion().String(), err)
 	}
 
 	// Check if the kind exists
 	for _, resource := range resourceList.APIResources {
-		if resource.Kind == gvk.Kind {
+		if resource.Name == gvr.Resource {
 			return nil
 		}
 	}
 
-	return fmt.Errorf("kind %s not found in %s", gvk.Kind, gvk.GroupVersion().String())
+	return fmt.Errorf("resource %s not found in %s", gvr.Resource, gvr.GroupVersion().String())
 }
 
-// validateCELExpressions validates all CEL expressions by attempting to compile them
-func (r *OperationRuleSetReconciler) validateCELExpressions(or *api.OperationRuleSet) (err error) {
+// validateExpressions validates CEL expressions by attempting to compile them
+func (r *OperationRuleSetReconciler) validateExpressions(or *api.OperationRuleSet) (err error) {
 	for _, rule := range or.Rules() {
-		// Try to compile the expression using the evaluator
-		// We use a dummy object to test compilation
-		dummyObj := map[string]interface{}{
-			"metadata": map[string]interface{}{
-				"name": "test",
-			},
-		}
-
-		// The evaluator's internal compile will catch syntax errors
 		_, err = r.Evaluator.Evaluate(
-			&unstructured.Unstructured{Object: dummyObj},
+			&unstructured.Unstructured{},
 			&rule,
 		)
 		if err != nil {

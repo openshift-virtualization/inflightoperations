@@ -7,7 +7,7 @@ spec:
   target:
     group: operators.coreos.com
     version: v1alpha1
-    kind: Subscription
+    resource: subscriptions
   rules:
     - operation: Unpacking
       expression: |

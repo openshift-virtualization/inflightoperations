@@ -94,6 +94,7 @@ spec:
             cpu: 10m
             memory: 64Mi
         volumeMounts: []
+        imagePullPolicy: Always
       volumes: []
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10

@@ -1,8 +1,0 @@
-gvk:
-  group: kubevirt.io
-  version: v1
-  kind: VirtualMachine
-
-rules:
-  - operation: Stopping
-    expression: object.status.printableStatus == "Stopping"

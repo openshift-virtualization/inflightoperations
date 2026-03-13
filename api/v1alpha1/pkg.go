@@ -27,7 +27,7 @@ const (
 // Reasons
 const (
 	ReasonCompleted         = "Completed"
-	ReasonGVKNotFound       = "GVKNotFound"
+	ReasonGVRNotFound       = "GVRNotFound"
 	ReasonInvalidExpression = "InvalidExpression"
 	ReasonWatchSetupFailed  = "WatchSetupFailed"
 	ReasonWatchActive       = "WatchActive"

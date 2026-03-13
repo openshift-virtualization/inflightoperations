@@ -7,7 +7,7 @@ spec:
   target:
     group: hco.kubevirt.io
     version: v1beta1
-    kind: HyperConverged
+    resource: hyperconvergeds
   rules:
     - operation: Deploying
       expression: |

@@ -7,7 +7,7 @@ spec:
   target:
     group: cdi.kubevirt.io
     version: v1beta1
-    kind: DataVolume
+    resource: datavolumes
   rules:
     # === Import Operations ===
     - operation: ImportScheduled
@@ -85,9 +85,3 @@ spec:
     - operation: RebindInProgress
       expression: |
         has(object.status) && has(object.status.phase) && object.status.phase == "RebindInProgress"
-
-    # === Condition-Based ===
-    - operation: Running
-      expression: |
-        has(object.status) && has(object.status.conditions) &&
-        object.status.conditions.exists(c, c.type == "Running" && c.status == "True")

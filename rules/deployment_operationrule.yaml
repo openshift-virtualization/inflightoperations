@@ -6,7 +6,7 @@ spec:
   target:
     group: apps
     version: v1
-    kind: Deployment
+    resource: deployments
   rules:
     # === Import Operations ===
     - operation: Rollout

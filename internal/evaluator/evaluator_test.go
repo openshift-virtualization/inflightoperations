@@ -22,6 +22,13 @@ func TestEvaluate(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			name:    "nil object",
+			object:  makeObject(nil),
+			rule:    &api.Rule{Expression: "has(object.status)"},
+			want:    false,
+			wantErr: false,
+		},
+		{
 			name: "simple string equality - match",
 			object: makeObject(map[string]interface{}{
 				"status": map[string]interface{}{

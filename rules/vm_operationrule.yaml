@@ -7,7 +7,7 @@ spec:
   target:
     group: kubevirt.io
     version: v1
-    kind: VirtualMachine
+    resource: virtualmachines
   rules:
     - operation: Migrating
       expression: |

@@ -17,25 +17,23 @@ limitations under the License.
 package watch
 
 import (
-	"path"
 	"sync"
 
 	api "github.com/ifo-operator/inflightoperations/api/v1alpha1"
-	"github.com/ifo-operator/inflightoperations/internal/rules"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// RuleCache is a thread-safe cache for RuleSets indexed by GVK
+// RuleCache is a thread-safe cache for RuleSets indexed by GVR
 type RuleCache struct {
 	mu sync.RWMutex
-	// cache maps GVK string to list of RuleSets targeting that GVK
-	cache map[schema.GroupVersionKind][]api.OperationRuleSet
+	// cache maps GVR string to list of RuleSets targeting that GVR
+	cache map[schema.GroupVersionResource][]api.OperationRuleSet
 }
 
 // NewRuleCache creates a new RuleCache
 func NewRuleCache() *RuleCache {
 	return &RuleCache{
-		cache: make(map[schema.GroupVersionKind][]api.OperationRuleSet),
+		cache: make(map[schema.GroupVersionResource][]api.OperationRuleSet),
 	}
 }
 
@@ -63,12 +61,12 @@ func (r *RuleCache) RemoveRule(or *api.OperationRuleSet) {
 
 // unsafe helper; must be called with the cache locked.
 func (r *RuleCache) addRule(or *api.OperationRuleSet) {
-	r.cache[or.GVK()] = append(r.cache[or.GVK()], *or)
+	r.cache[or.GVR()] = append(r.cache[or.GVR()], *or)
 }
 
 // unsafe helper; must be called with the cache locked.
 func (r *RuleCache) removeRule(or *api.OperationRuleSet) {
-	key := or.GVK()
+	key := or.GVR()
 	rulesets := r.cache[key]
 	for i := range rulesets {
 		if rulesets[i].Name == or.Name {
@@ -80,38 +78,24 @@ func (r *RuleCache) removeRule(or *api.OperationRuleSet) {
 	}
 }
 
-// List returns all rulesets targeting the specified GVK
-func (r *RuleCache) List(gvk schema.GroupVersionKind) (rulesets []api.OperationRuleSet) {
+// List returns all rulesets targeting the specified GVR
+func (r *RuleCache) List(gvr schema.GroupVersionResource) (rulesets []api.OperationRuleSet) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	rulesets = r.cache[gvk]
+	rulesets = r.cache[gvr]
 	return
 }
 
-func (r *RuleCache) ruleSet(cr *api.OperationRuleSet) (rf rules.RuleSet) {
-	rf = rules.RuleSet{
-		Name:       path.Join(cr.Namespace, cr.Name),
-		Namespaces: cr.Spec.Namespaces,
-	}
-	for _, rule := range cr.Rules() {
-		rf.Rules = append(rf.Rules, rules.Rule{
-			Operation:  rule.Operation,
-			Expression: rule.Expression,
-		})
-	}
-	return
-}
-
-// GVKs returns a list of all GVKs that have at least one rule
-func (r *RuleCache) GVKs() []schema.GroupVersionKind {
+// GVRs returns a list of all GVRs that have at least one rule
+func (r *RuleCache) GVRs() []schema.GroupVersionResource {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	gvks := make([]schema.GroupVersionKind, 0, len(r.cache))
-	for gvk, rules := range r.cache {
+	gvrs := make([]schema.GroupVersionResource, 0, len(r.cache))
+	for gvr, rules := range r.cache {
 		if len(rules) > 0 {
-			gvks = append(gvks, gvk)
+			gvrs = append(gvrs, gvr)
 		}
 	}
-	return gvks
+	return gvrs
 }

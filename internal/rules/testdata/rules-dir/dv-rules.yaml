@@ -1,8 +1,0 @@
-gvk:
-  group: cdi.kubevirt.io
-  version: v1beta1
-  kind: DataVolume
-
-rules:
-  - operation: ImportInProgress
-    expression: has(object.status.phase) && object.status.phase == "ImportInProgress"

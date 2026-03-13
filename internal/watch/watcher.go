@@ -8,14 +8,10 @@ import (
 	liberr "github.com/ifo-operator/inflightoperations/lib/error"
 	"github.com/ifo-operator/inflightoperations/lib/logging"
 	"github.com/ifo-operator/inflightoperations/settings"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/discovery"
-	memory "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
-	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -25,9 +21,7 @@ var Settings = &settings.Settings
 type Watcher struct {
 	client          client.Client
 	dynamicClient   dynamic.Interface
-	discoveryClient discovery.DiscoveryInterface
 	informerFactory dynamicinformer.DynamicSharedInformerFactory
-	restMapper      meta.RESTMapper
 	log             logging.LevelLogger
 	cache           *WatchCache
 	rules           *RuleCache
@@ -35,9 +29,7 @@ type Watcher struct {
 	operations      *Operations
 }
 
-func NewWatcher(client client.Client, dynamicClient dynamic.Interface, discoveryClient discovery.DiscoveryInterface, rules *RuleCache, evaluator evaluator.Evaluator, log logging.LevelLogger) *Watcher {
-	cachedDiscovery := memory.NewMemCacheClient(discoveryClient)
-	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(cachedDiscovery)
+func NewWatcher(client client.Client, dynamicClient dynamic.Interface, rules *RuleCache, evaluator evaluator.Evaluator, log logging.LevelLogger) *Watcher {
 	factory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(
 		dynamicClient,
 		Settings.K8SInformerResync,
@@ -47,9 +39,7 @@ func NewWatcher(client client.Client, dynamicClient dynamic.Interface, discovery
 	return &Watcher{
 		client:          client,
 		dynamicClient:   dynamicClient,
-		discoveryClient: discoveryClient,
 		informerFactory: factory,
-		restMapper:      restMapper,
 		log:             log,
 		cache:           NewWatchCache(),
 		rules:           rules,
@@ -61,57 +51,57 @@ func NewWatcher(client client.Client, dynamicClient dynamic.Interface, discovery
 	}
 }
 
-// Register a new watch for a GVK.
-func (r *Watcher) Register(gvk schema.GroupVersionKind) (err error) {
+// Register a new watch for a GVR.
+func (r *Watcher) Register(gvr schema.GroupVersionResource) (err error) {
 	r.cache.Lock()
 	defer func() {
 		r.cache.Unlock()
 		if err != nil {
-			r.log.Error(err, "Failed to register watch.", "gvk", gvk)
+			r.log.Error(err, "Failed to register watch.", "gvr", gvr)
 		}
 	}()
-	if r.cache.Exists(gvk) {
-		r.log.V(4).Info("Watch already registered.", "gvk", gvk.String())
+	if r.cache.Exists(gvr) {
+		r.log.V(4).Info("Watch already registered.", "gvr", gvr.String())
 		return
 	}
-	r.log.V(4).Info("Registering watch.", "gvk", gvk.String())
-	informer, err := r.makeInformer(gvk)
+	r.log.V(4).Info("Registering watch.", "gvr", gvr.String())
+	informer, err := r.makeInformer(gvr)
 	if err != nil {
 		return
 	}
-	err = r.addHandlers(informer, gvk)
+	err = r.addHandlers(informer, gvr)
 	if err != nil {
 		return
 	}
-	r.cache.Start(gvk, informer)
-	r.log.V(0).Info("Watch registered.", "gvk", gvk.String())
+	r.cache.Start(gvr, informer)
+	r.log.V(0).Info("Watch registered.", "gvr", gvr.String())
 	return
 }
 
 func (r *Watcher) Prune() {
 	r.cache.Lock()
 	defer r.cache.Unlock()
-	r.cache.Prune(r.rules.GVKs())
+	r.cache.Prune(r.rules.GVRs())
 }
 
-func (r *Watcher) addHandlers(informer cache.SharedIndexInformer, gvk schema.GroupVersionKind) (err error) {
+func (r *Watcher) addHandlers(informer cache.SharedIndexInformer, gvr schema.GroupVersionResource) (err error) {
 	_, err = informer.AddEventHandler(&cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj any) {
-			iErr := r.handle(obj, gvk)
+			iErr := r.handle(obj, gvr)
 			if iErr != nil {
-				r.log.Error(iErr, "failed to handle Add event", "gvk", gvk)
+				r.log.Error(iErr, "failed to handle Add event", "gvr", gvr)
 			}
 		},
 		UpdateFunc: func(_, obj any) {
-			iErr := r.handle(obj, gvk)
+			iErr := r.handle(obj, gvr)
 			if iErr != nil {
-				r.log.Error(iErr, "failed to handle Update event", "gvk", gvk)
+				r.log.Error(iErr, "failed to handle Update event", "gvr", gvr)
 			}
 		},
 		DeleteFunc: func(obj any) {
-			iErr := r.handleDelete(obj, gvk)
+			iErr := r.handleDelete(obj, gvr)
 			if iErr != nil {
-				r.log.Error(iErr, "failed to handle Delete event", "gvk", gvk)
+				r.log.Error(iErr, "failed to handle Delete event", "gvr", gvr)
 			}
 		},
 	})
@@ -122,26 +112,21 @@ func (r *Watcher) addHandlers(informer cache.SharedIndexInformer, gvk schema.Gro
 	return
 }
 
-func (r *Watcher) makeInformer(gvk schema.GroupVersionKind) (informer cache.SharedIndexInformer, err error) {
-	mapping, err := r.restMapper.RESTMapping(gvk.GroupKind(), gvk.Version)
-	if err != nil {
-		err = liberr.Wrap(err)
-		return
-	}
-	informer = r.informerFactory.ForResource(mapping.Resource).Informer()
+func (r *Watcher) makeInformer(gvr schema.GroupVersionResource) (informer cache.SharedIndexInformer, err error) {
+	informer = r.informerFactory.ForResource(gvr).Informer()
 	return
 }
 
-func (r *Watcher) handle(obj any, gvk schema.GroupVersionKind) (err error) {
+func (r *Watcher) handle(obj any, gvr schema.GroupVersionResource) (err error) {
 	subject, ok := obj.(*api.Subject)
 	if !ok {
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), Settings.K8SAPITimeout)
 	defer cancel()
-	rulesets := r.rules.List(gvk)
+	rulesets := r.rules.List(gvr)
 	if len(rulesets) == 0 {
-		r.log.V(4).Info("No rulesets for GVK", "gvk", gvk.String())
+		r.log.V(4).Info("No rulesets for GVR", "gvr", gvr.String())
 		return
 	}
 
@@ -194,7 +179,7 @@ func (r *Watcher) handle(obj any, gvk schema.GroupVersionKind) (err error) {
 	return
 }
 
-func (r *Watcher) handleDelete(obj any, _ schema.GroupVersionKind) (err error) {
+func (r *Watcher) handleDelete(obj any, _ schema.GroupVersionResource) (err error) {
 	subject, ok := obj.(*api.Subject)
 	if !ok {
 		return

@@ -7,7 +7,7 @@ spec:
   target:
     group: kubevirt.io
     version: v1
-    kind: VirtualMachineInstanceMigration
+    resource: virtualmachineinstancemigrations
   rules:
     - operation: Pending
       expression: |

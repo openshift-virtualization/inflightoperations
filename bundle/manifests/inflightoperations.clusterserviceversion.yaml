@@ -4,7 +4,7 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    createdAt: "2026-03-12T03:13:48Z"
+    createdAt: "2026-03-13T03:05:34Z"
     operators.operatorframework.io/builder: operator-sdk-v1.42.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
   name: inflightoperations.v99.0.0
@@ -36,6 +36,7 @@ spec:
           verbs:
           - create
           - delete
+          - deletecollection
           - get
           - list
           - patch
@@ -111,6 +112,7 @@ spec:
                 command:
                 - /manager
                 image: quay.io/ifo-operator/controller:99.0.0
+                imagePullPolicy: Always
                 livenessProbe:
                   httpGet:
                     path: /healthz

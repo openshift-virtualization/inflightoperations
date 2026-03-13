@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	api "github.com/ifo-operator/inflightoperations/api/v1alpha1"
-	"github.com/ifo-operator/inflightoperations/internal/rules"
 	liberr "github.com/ifo-operator/inflightoperations/lib/error"
 )
 
@@ -37,18 +36,6 @@ func NewEvaluator() (Evaluator, error) {
 	return &celEvaluator{
 		programCache: cache,
 	}, nil
-}
-
-func (r *celEvaluator) ShouldEvaluate(subject *api.Subject, ruleset rules.RuleSet) bool {
-	if len(ruleset.Namespaces) == 0 {
-		return true
-	}
-	for _, namespace := range ruleset.Namespaces {
-		if subject.GetNamespace() == namespace {
-			return true
-		}
-	}
-	return false
 }
 
 // Evaluate evaluates a single CEL expression against an unstructured object

@@ -19,10 +19,10 @@ func TestRuleCacheAddAndGet(t *testing.T) {
 	rule := v1alpha1.OperationRuleSet{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-rule"},
 		Spec: v1alpha1.OperationRuleSetSpec{
-			Target: v1alpha1.GroupVersionKind{
-				Group:   "kubevirt.io",
-				Version: "v1",
-				Kind:    "VirtualMachine",
+			Target: v1alpha1.GroupVersionResource{
+				Group:    "kubevirt.io",
+				Version:  "v1",
+				Resource: "virtualmachines",
 			},
 			Rules: []v1alpha1.Rule{
 				{Operation: "Migrating", Expression: "true"},
@@ -32,13 +32,13 @@ func TestRuleCacheAddAndGet(t *testing.T) {
 
 	cache.AddOrUpdateRule(&rule)
 
-	gvk := schema.GroupVersionKind{
-		Group:   "kubevirt.io",
-		Version: "v1",
-		Kind:    "VirtualMachine",
+	gvr := schema.GroupVersionResource{
+		Group:    "kubevirt.io",
+		Version:  "v1",
+		Resource: "virtualmachines",
 	}
 
-	rules := cache.List(gvk)
+	rules := cache.List(gvr)
 	if len(rules) != 1 {
 		t.Errorf("Expected 1 rule, got %d", len(rules))
 	}
@@ -54,10 +54,10 @@ func TestRuleCacheUpdate(t *testing.T) {
 	rule := v1alpha1.OperationRuleSet{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-rule"},
 		Spec: v1alpha1.OperationRuleSetSpec{
-			Target: v1alpha1.GroupVersionKind{
-				Group:   "kubevirt.io",
-				Version: "v1",
-				Kind:    "VirtualMachine",
+			Target: v1alpha1.GroupVersionResource{
+				Group:    "kubevirt.io",
+				Version:  "v1",
+				Resource: "virtualmachines",
 			},
 			Rules: []v1alpha1.Rule{
 				{Operation: "Migrating", Expression: "true"},
@@ -70,10 +70,10 @@ func TestRuleCacheUpdate(t *testing.T) {
 	updatedRule := v1alpha1.OperationRuleSet{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-rule"},
 		Spec: v1alpha1.OperationRuleSetSpec{
-			Target: v1alpha1.GroupVersionKind{
-				Group:   "kubevirt.io",
-				Version: "v1",
-				Kind:    "VirtualMachine",
+			Target: v1alpha1.GroupVersionResource{
+				Group:    "kubevirt.io",
+				Version:  "v1",
+				Resource: "virtualmachines",
 			},
 			Rules: []v1alpha1.Rule{
 				{Operation: "Starting", Expression: "true"},
@@ -82,13 +82,13 @@ func TestRuleCacheUpdate(t *testing.T) {
 	}
 	cache.AddOrUpdateRule(&updatedRule)
 
-	gvk := schema.GroupVersionKind{
-		Group:   "kubevirt.io",
-		Version: "v1",
-		Kind:    "VirtualMachine",
+	gvr := schema.GroupVersionResource{
+		Group:    "kubevirt.io",
+		Version:  "v1",
+		Resource: "virtualmachines",
 	}
 
-	rules := cache.List(gvk)
+	rules := cache.List(gvr)
 	if len(rules) != 1 {
 		t.Errorf("Expected 1 rule after update, got %d", len(rules))
 	}
@@ -103,10 +103,10 @@ func TestRuleCacheRemove(t *testing.T) {
 	rule := v1alpha1.OperationRuleSet{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-rule"},
 		Spec: v1alpha1.OperationRuleSetSpec{
-			Target: v1alpha1.GroupVersionKind{
-				Group:   "kubevirt.io",
-				Version: "v1",
-				Kind:    "VirtualMachine",
+			Target: v1alpha1.GroupVersionResource{
+				Group:    "kubevirt.io",
+				Version:  "v1",
+				Resource: "virtualmachines",
 			},
 			Rules: []v1alpha1.Rule{
 				{Operation: "Migrating", Expression: "true"},
@@ -115,30 +115,30 @@ func TestRuleCacheRemove(t *testing.T) {
 	}
 	cache.AddOrUpdateRule(&rule)
 
-	gvk := schema.GroupVersionKind{
-		Group:   "kubevirt.io",
-		Version: "v1",
-		Kind:    "VirtualMachine",
+	gvr := schema.GroupVersionResource{
+		Group:    "kubevirt.io",
+		Version:  "v1",
+		Resource: "virtualmachines",
 	}
 
 	cache.RemoveRule(&rule)
 
-	rules := cache.List(gvk)
+	rules := cache.List(gvr)
 	if len(rules) != 0 {
 		t.Errorf("Expected 0 rules after removal, got %d", len(rules))
 	}
 }
 
-func TestRuleCacheMultipleRulesPerGVK(t *testing.T) {
+func TestRuleCacheMultipleRulesPerGVR(t *testing.T) {
 	cache := NewRuleCache()
 
 	rule1 := v1alpha1.OperationRuleSet{
 		ObjectMeta: metav1.ObjectMeta{Name: "rule-1"},
 		Spec: v1alpha1.OperationRuleSetSpec{
-			Target: v1alpha1.GroupVersionKind{
-				Group:   "kubevirt.io",
-				Version: "v1",
-				Kind:    "VirtualMachine",
+			Target: v1alpha1.GroupVersionResource{
+				Group:    "kubevirt.io",
+				Version:  "v1",
+				Resource: "virtualmachines",
 			},
 			Rules: []v1alpha1.Rule{
 				{Operation: "Migrating", Expression: "true"},
@@ -149,10 +149,10 @@ func TestRuleCacheMultipleRulesPerGVK(t *testing.T) {
 	rule2 := v1alpha1.OperationRuleSet{
 		ObjectMeta: metav1.ObjectMeta{Name: "rule-2"},
 		Spec: v1alpha1.OperationRuleSetSpec{
-			Target: v1alpha1.GroupVersionKind{
-				Group:   "kubevirt.io",
-				Version: "v1",
-				Kind:    "VirtualMachine",
+			Target: v1alpha1.GroupVersionResource{
+				Group:    "kubevirt.io",
+				Version:  "v1",
+				Resource: "virtualmachines",
 			},
 			Rules: []v1alpha1.Rule{
 				{Operation: "Starting", Expression: "true"},
@@ -163,13 +163,13 @@ func TestRuleCacheMultipleRulesPerGVK(t *testing.T) {
 	cache.AddOrUpdateRule(&rule1)
 	cache.AddOrUpdateRule(&rule2)
 
-	gvk := schema.GroupVersionKind{
-		Group:   "kubevirt.io",
-		Version: "v1",
-		Kind:    "VirtualMachine",
+	gvr := schema.GroupVersionResource{
+		Group:    "kubevirt.io",
+		Version:  "v1",
+		Resource: "virtualmachines",
 	}
 
-	rules := cache.List(gvk)
+	rules := cache.List(gvr)
 	if len(rules) != 2 {
 		t.Errorf("Expected 2 rules, got %d", len(rules))
 	}
@@ -187,10 +187,10 @@ func TestRuleCacheConcurrency(t *testing.T) {
 			rule := v1alpha1.OperationRuleSet{
 				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("rule-%d", id)},
 				Spec: v1alpha1.OperationRuleSetSpec{
-					Target: v1alpha1.GroupVersionKind{
-						Group:   "test.io",
-						Version: "v1",
-						Kind:    "TestResource",
+					Target: v1alpha1.GroupVersionResource{
+						Group:    "test.io",
+						Version:  "v1",
+						Resource: "testresources",
 					},
 					Rules: []v1alpha1.Rule{
 						{Operation: "TestOp", Expression: "true"},
@@ -206,39 +206,39 @@ func TestRuleCacheConcurrency(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			gvk := schema.GroupVersionKind{
-				Group:   "test.io",
-				Version: "v1",
-				Kind:    "TestResource",
+			gvr := schema.GroupVersionResource{
+				Group:    "test.io",
+				Version:  "v1",
+				Resource: "testresources",
 			}
-			_ = cache.List(gvk)
+			_ = cache.List(gvr)
 		}()
 	}
 
 	wg.Wait()
 
 	// Verify final state
-	gvk := schema.GroupVersionKind{
-		Group:   "test.io",
-		Version: "v1",
-		Kind:    "TestResource",
+	gvr := schema.GroupVersionResource{
+		Group:    "test.io",
+		Version:  "v1",
+		Resource: "testresources",
 	}
-	rules := cache.List(gvk)
+	rules := cache.List(gvr)
 	if len(rules) != 10 {
 		t.Errorf("Expected 10 rules after concurrent operations, got %d", len(rules))
 	}
 }
 
-func TestRuleCacheGetAllGVKs(t *testing.T) {
+func TestRuleCacheGetAllGVRs(t *testing.T) {
 	cache := NewRuleCache()
 
 	rule1 := v1alpha1.OperationRuleSet{
 		ObjectMeta: metav1.ObjectMeta{Name: "rule-1"},
 		Spec: v1alpha1.OperationRuleSetSpec{
-			Target: v1alpha1.GroupVersionKind{
-				Group:   "kubevirt.io",
-				Version: "v1",
-				Kind:    "VirtualMachine",
+			Target: v1alpha1.GroupVersionResource{
+				Group:    "kubevirt.io",
+				Version:  "v1",
+				Resource: "virtualmachines",
 			},
 			Rules: []v1alpha1.Rule{
 				{Operation: "Migrating", Expression: "true"},
@@ -249,10 +249,10 @@ func TestRuleCacheGetAllGVKs(t *testing.T) {
 	rule2 := v1alpha1.OperationRuleSet{
 		ObjectMeta: metav1.ObjectMeta{Name: "rule-2"},
 		Spec: v1alpha1.OperationRuleSetSpec{
-			Target: v1alpha1.GroupVersionKind{
-				Group:   "cdi.kubevirt.io",
-				Version: "v1beta1",
-				Kind:    "DataVolume",
+			Target: v1alpha1.GroupVersionResource{
+				Group:    "cdi.kubevirt.io",
+				Version:  "v1beta1",
+				Resource: "datavolumes",
 			},
 			Rules: []v1alpha1.Rule{
 				{Operation: "Provisioning", Expression: "true"},
@@ -263,45 +263,8 @@ func TestRuleCacheGetAllGVKs(t *testing.T) {
 	cache.AddOrUpdateRule(&rule1)
 	cache.AddOrUpdateRule(&rule2)
 
-	gvks := cache.GVKs()
-	if len(gvks) != 2 {
-		t.Errorf("Expected 2 GVKs, got %d", len(gvks))
-	}
-}
-
-func TestRuleCacheImmutability(t *testing.T) {
-	cache := NewRuleCache()
-
-	rule := v1alpha1.OperationRuleSet{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-rule"},
-		Spec: v1alpha1.OperationRuleSetSpec{
-			Target: v1alpha1.GroupVersionKind{
-				Group:   "kubevirt.io",
-				Version: "v1",
-				Kind:    "VirtualMachine",
-			},
-			Rules: []v1alpha1.Rule{
-				{Operation: "Migrating", Expression: "true"},
-			},
-		},
-	}
-	cache.AddOrUpdateRule(&rule)
-
-	gvk := schema.GroupVersionKind{
-		Group:   "kubevirt.io",
-		Version: "v1",
-		Kind:    "VirtualMachine",
-	}
-
-	// Get rules
-	rules := cache.List(gvk)
-
-	// Modify the returned slice (should not affect cache)
-	rules[0].Name = "test-immutability"
-
-	// Verify cache is unchanged
-	rulesAfter := cache.List(gvk)
-	if len(rulesAfter) != 1 || rulesAfter[0].Name != "test-rule" {
-		t.Errorf("Cache was modified by external slice modification")
+	gvrs := cache.GVRs()
+	if len(gvrs) != 2 {
+		t.Errorf("Expected 2 GVRs, got %d", len(gvrs))
 	}
 }

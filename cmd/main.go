@@ -194,14 +194,14 @@ func main() {
 	}
 	cfg := mgr.GetConfig()
 
-	// Create dynamic client for arbitrary GVK watches
+	// Create dynamic client for arbitrary GVR watches
 	dynamicClient, err := dynamic.NewForConfig(cfg)
 	if err != nil {
 		log.Error(err, "unable to create dynamic client")
 		os.Exit(1)
 	}
 
-	// Create discovery client for GVK validation and REST mapping
+	// Create discovery client for GVR validation and REST mapping
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(cfg)
 	if err != nil {
 		log.Error(err, "unable to create discovery client")
