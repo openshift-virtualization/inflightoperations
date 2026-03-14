@@ -5,7 +5,7 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - ifo-operator.org
+  - ifo.kubevirt.io
   resources:
   - inflightoperations
   - operationrulesets
@@ -19,14 +19,14 @@ rules:
   - update
   - watch
 - apiGroups:
-  - ifo-operator.org
+  - ifo.kubevirt.io
   resources:
   - inflightoperations/finalizers
   - operationrulesets/finalizers
   verbs:
   - update
 - apiGroups:
-  - ifo-operator.org
+  - ifo.kubevirt.io
   resources:
   - inflightoperations/status
   - operationrulesets/status

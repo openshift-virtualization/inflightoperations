@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.20.0
-  name: operationrulesets.ifo-operator.org
+  name: operationrulesets.ifo.kubevirt.io
 spec:
-  group: ifo-operator.org
+  group: ifo.kubevirt.io
   names:
     kind: OperationRuleSet
     listKind: OperationRuleSetList

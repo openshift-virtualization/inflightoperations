@@ -57,12 +57,12 @@ type OperationRuleSetReconciler struct {
 	Evaluator       evaluator.Evaluator
 }
 
-// +kubebuilder:rbac:groups=ifo-operator.org,resources=operationrulesets,verbs=get;list;watch;create;update;patch;delete;deletecollection
-// +kubebuilder:rbac:groups=ifo-operator.org,resources=operationrulesets/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=ifo-operator.org,resources=operationrulesets/finalizers,verbs=update
-// +kubebuilder:rbac:groups=ifo-operator.org,resources=inflightoperations,verbs=get;list;watch;create;update;patch;delete;deletecollection
-// +kubebuilder:rbac:groups=ifo-operator.org,resources=inflightoperations/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=ifo-operator.org,resources=inflightoperations/finalizers,verbs=update
+// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=operationrulesets,verbs=get;list;watch;create;update;patch;delete;deletecollection
+// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=operationrulesets/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=operationrulesets/finalizers,verbs=update
+// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=inflightoperations,verbs=get;list;watch;create;update;patch;delete;deletecollection
+// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=inflightoperations/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=ifo.kubevirt.io,resources=inflightoperations/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

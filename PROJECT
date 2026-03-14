@@ -3,7 +3,7 @@
 # and allow the plugins properly work.
 # More info: https://book.kubebuilder.io/reference/project-config.html
 cliVersion: 4.11.1
-domain: ifo-operator.org
+domain: ifo.kubevirt.io
 layout:
 - go.kubebuilder.io/v4
 projectName: inflightoperations
@@ -13,7 +13,7 @@ resources:
     crdVersion: v1
     namespaced: false
   controller: true
-  domain: ifo-operator.org
+  domain: ifo.kubevirt.io
   kind: InFlightOperation
   path: github.com/ifo-operator/inflightoperations/api/v1alpha1
   version: v1alpha1
@@ -21,7 +21,7 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: ifo-operator.org
+  domain: ifo.kubevirt.io
   kind: OperationRuleSet
   path: github.com/ifo-operator/inflightoperations/api/v1alpha1
   version: v1alpha1

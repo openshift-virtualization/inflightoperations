@@ -4,7 +4,7 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    createdAt: "2026-03-14T02:38:58Z"
+    createdAt: "2026-03-14T05:42:01Z"
     operators.operatorframework.io/builder: operator-sdk-v1.42.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
   name: inflightoperations.v99.0.0
@@ -14,10 +14,10 @@ spec:
   customresourcedefinitions:
     owned:
     - kind: InFlightOperation
-      name: inflightoperations.ifo-operator.org
+      name: inflightoperations.ifo.kubevirt.io
       version: v1alpha1
     - kind: OperationRuleSet
-      name: operationrulesets.ifo-operator.org
+      name: operationrulesets.ifo.kubevirt.io
       version: v1alpha1
   description: Inflightoperations description. TODO.
   displayName: Inflightoperations
@@ -29,7 +29,7 @@ spec:
       clusterPermissions:
       - rules:
         - apiGroups:
-          - ifo-operator.org
+          - ifo.kubevirt.io
           resources:
           - inflightoperations
           - operationrulesets
@@ -43,14 +43,14 @@ spec:
           - update
           - watch
         - apiGroups:
-          - ifo-operator.org
+          - ifo.kubevirt.io
           resources:
           - inflightoperations/finalizers
           - operationrulesets/finalizers
           verbs:
           - update
         - apiGroups:
-          - ifo-operator.org
+          - ifo.kubevirt.io
           resources:
           - inflightoperations/status
           - operationrulesets/status

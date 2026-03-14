@@ -8,13 +8,13 @@ metadata:
   name: inflightoperations-operationrule-admin-role
 rules:
 - apiGroups:
-  - ifo-operator.org
+  - ifo.kubevirt.io
   resources:
   - operationrules
   verbs:
   - '*'
 - apiGroups:
-  - ifo-operator.org
+  - ifo.kubevirt.io
   resources:
   - operationrules/status
   verbs:
