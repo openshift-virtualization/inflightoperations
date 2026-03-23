@@ -107,5 +107,8 @@ func (r *Operations) operationLabels(subject *api.Subject, operation string, rul
 	labels[api.LabelOperation] = operation
 	labels[api.LabelRuleSet] = ruleset.Name
 	labels[api.LabelComponent] = ruleset.Spec.Component
+	for k, v := range ruleset.Spec.Labels {
+		labels[k] = v
+	}
 	return labels
 }

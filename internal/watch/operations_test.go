@@ -111,3 +111,31 @@ func TestOperationLabels(t *testing.T) {
 		t.Errorf("expected subject name label my-vm, got %s", labels[api.LabelSubjectName])
 	}
 }
+
+func TestOperationLabelsWithStaticLabels(t *testing.T) {
+	ops := &Operations{}
+	subject := makeTestSubject("my-vm", "default", "VirtualMachine", "kubevirt.io/v1", "uid-123")
+	ruleset := &api.OperationRuleSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "vm-rules"},
+		Spec: api.OperationRuleSetSpec{
+			Component: "kubevirt",
+			Labels: map[string]string{
+				"custom-label":  "custom-value",
+				"another-label": "another-value",
+			},
+		},
+	}
+
+	labels := ops.operationLabels(subject, "Migrating", ruleset)
+
+	if labels["custom-label"] != "custom-value" {
+		t.Errorf("expected custom-label=custom-value, got %s", labels["custom-label"])
+	}
+	if labels["another-label"] != "another-value" {
+		t.Errorf("expected another-label=another-value, got %s", labels["another-label"])
+	}
+	// Built-in labels should still be present
+	if labels[api.LabelOperation] != "Migrating" {
+		t.Errorf("expected operation label Migrating, got %s", labels[api.LabelOperation])
+	}
+}
