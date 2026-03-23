@@ -20,6 +20,7 @@ import (
 	"sync"
 
 	api "github.com/ifo-operator/inflightoperations/api/v1alpha1"
+	"github.com/ifo-operator/inflightoperations/internal/metrics"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -62,6 +63,7 @@ func (r *RuleCache) RemoveRule(or *api.OperationRuleSet) {
 // unsafe helper; must be called with the cache locked.
 func (r *RuleCache) addRule(or *api.OperationRuleSet) {
 	r.cache[or.GVR()] = append(r.cache[or.GVR()], *or)
+	metrics.ActiveRulesets.Inc()
 }
 
 // unsafe helper; must be called with the cache locked.
@@ -77,6 +79,7 @@ func (r *RuleCache) removeRule(or *api.OperationRuleSet) {
 			} else {
 				r.cache[key] = rulesets
 			}
+			metrics.ActiveRulesets.Dec()
 			return
 		}
 	}

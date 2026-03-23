@@ -6,6 +6,7 @@ import (
 	"maps"
 	"sync"
 
+	"github.com/ifo-operator/inflightoperations/internal/metrics"
 	"github.com/ifo-operator/inflightoperations/settings"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
@@ -48,6 +49,7 @@ func (r *WatchCache) Start(gvr schema.GroupVersionResource, informer cache.Share
 	w := NewWatch(gvr, informer)
 	w.Start()
 	r.watches[gvr] = w
+	metrics.ActiveWatches.Inc()
 }
 
 func (r *WatchCache) Stop(gvr schema.GroupVersionResource) {
@@ -57,6 +59,7 @@ func (r *WatchCache) Stop(gvr schema.GroupVersionResource) {
 	}
 	w.Stop()
 	delete(r.watches, gvr)
+	metrics.ActiveWatches.Dec()
 }
 
 func (r *WatchCache) Exists(gvr schema.GroupVersionResource) (ok bool) {

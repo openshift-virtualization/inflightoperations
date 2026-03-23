@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	api "github.com/ifo-operator/inflightoperations/api/v1alpha1"
+	"github.com/ifo-operator/inflightoperations/internal/metrics"
 	liberr "github.com/ifo-operator/inflightoperations/lib/error"
 	"github.com/ifo-operator/inflightoperations/lib/logging"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -86,6 +87,7 @@ func (r *Operations) Ensure(ctx context.Context, op *api.InFlightOperation) (out
 			return
 		}
 		r.log.Info("Created InFlightOperation resource.", "name", op.Name)
+		metrics.InFlightOperationsCreated.WithLabelValues(op.Spec.Subject.Kind, op.Spec.Operation).Inc()
 		out = op
 	} else {
 		out = &list.Items[0]

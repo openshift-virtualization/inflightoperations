@@ -2,9 +2,11 @@ package watch
 
 import (
 	"context"
+	"time"
 
 	api "github.com/ifo-operator/inflightoperations/api/v1alpha1"
 	"github.com/ifo-operator/inflightoperations/internal/evaluator"
+	"github.com/ifo-operator/inflightoperations/internal/metrics"
 	liberr "github.com/ifo-operator/inflightoperations/lib/error"
 	"github.com/ifo-operator/inflightoperations/lib/logging"
 	"github.com/ifo-operator/inflightoperations/settings"
@@ -137,8 +139,11 @@ func (r *Watcher) handle(obj any, gvr schema.GroupVersionResource) (err error) {
 			continue
 		}
 		var result evaluator.RuleSetResult
+		evalStart := time.Now()
 		result, err = r.evaluator.EvaluateRuleSet(subject, &ruleset)
+		metrics.RulesetEvaluationDuration.WithLabelValues(ruleset.Name).Observe(time.Since(evalStart).Seconds())
 		if err != nil {
+			metrics.RulesetEvaluationErrors.WithLabelValues(ruleset.Name).Inc()
 			r.log.Error(err, "Failed to evaluate ruleset", "ruleset", ruleset, "subject", subject.GetName(), "namespace", subject.GetNamespace())
 			continue
 		}
@@ -203,7 +208,12 @@ func (r *Watcher) markCompleted(ctx context.Context, subject *api.Subject, ifo *
 	if err != nil {
 		err = liberr.Wrap(err)
 		r.log.Error(err, "Failed to update operation status", "subject", subject.GetName(), "namespace", subject.GetNamespace(), "ifo", ifo.Name)
+		return
 	}
+	kind := ifo.Spec.Subject.Kind
+	operation := ifo.Spec.Operation
+	metrics.InFlightOperationsCompleted.WithLabelValues(kind, operation).Inc()
+	metrics.InFlightOperationDuration.WithLabelValues(kind, operation).Observe(time.Since(ifo.CreationTimestamp.Time).Seconds())
 }
 
 // cleanupCompleted makes a best-effort attempt to remove an IFO.

@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/google/cel-go/cel"
+	"github.com/ifo-operator/inflightoperations/internal/metrics"
 )
 
 // ProgramCache caches compiled CEL programs for performance
@@ -61,5 +62,6 @@ func (c *ProgramCache) GetOrCompile(expression string) (cel.Program, error) {
 	}
 
 	c.programs[expression] = prog
+	metrics.ProgramCacheSize.Set(float64(len(c.programs)))
 	return prog, nil
 }
