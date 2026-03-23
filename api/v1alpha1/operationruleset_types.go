@@ -62,11 +62,6 @@ type LabelExpression struct {
 
 // OperationRuleSetSpec defines the desired state of OperationRuleSet
 type OperationRuleSetSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	// The following markers will use OpenAPI v3 schema to validate the value
-	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
-
 	// Component is the name of the component this rule belongs to, e.g. KubeVirt or Forklift.
 	// +optional
 	Component string `json:"component,omitempty"`

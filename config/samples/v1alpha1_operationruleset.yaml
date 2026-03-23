@@ -6,4 +6,12 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: operationruleset-sample
 spec:
-  # TODO(user): Add fields here
+  target:
+    group: apps
+    version: v1
+    resource: deployments
+  rules:
+    - operation: Rollout
+      expression: |
+        has(object.status) &&
+        (!has(object.status.availableReplicas) || (object.status.availableReplicas < object.spec.replicas))

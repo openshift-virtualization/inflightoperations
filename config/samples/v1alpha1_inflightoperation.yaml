@@ -4,6 +4,17 @@ metadata:
   labels:
     app.kubernetes.io/name: inflightoperations
     app.kubernetes.io/managed-by: kustomize
+    ifo.kubevirt.io/operation: Rollout
+    ifo.kubevirt.io/subject-name: my-deployment
+    ifo.kubevirt.io/subject-namespace: default
+    ifo.kubevirt.io/subject-kind: Deployment
   name: operation-sample
 spec:
-  # TODO(user): Add fields here
+  operation: Rollout
+  ruleSet: operationruleset-sample
+  component: ""
+  subject:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: my-deployment
+    namespace: default
