@@ -131,6 +131,9 @@ func (r *OperationRuleSet) GVR() schema.GroupVersionResource {
 }
 
 func (r *OperationRuleSet) AppliesTo(subject *Subject) bool {
+	if len(r.Spec.Namespaces) == 0 {
+		return true
+	}
 	for _, ns := range r.Spec.Namespaces {
 		if ns == subject.GetNamespace() {
 			return true

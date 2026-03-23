@@ -17,13 +17,11 @@ func TestAppliesTo(t *testing.T) {
 		}
 	}
 
-	t.Run("empty namespaces matches nothing (current behavior)", func(t *testing.T) {
+	t.Run("empty namespaces matches all", func(t *testing.T) {
 		ors := &OperationRuleSet{}
 		subject := makeSubjectInNS("default")
-		// With empty Namespaces, AppliesTo returns false.
-		// This is a known bug (should return true per the spec comment).
-		if ors.AppliesTo(subject) {
-			t.Fatal("expected false with empty namespaces (current behavior)")
+		if !ors.AppliesTo(subject) {
+			t.Fatal("expected true with empty namespaces (matches all)")
 		}
 	})
 	t.Run("matching namespace", func(t *testing.T) {

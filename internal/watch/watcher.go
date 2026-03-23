@@ -133,6 +133,9 @@ func (r *Watcher) handle(obj any, gvr schema.GroupVersionResource) (err error) {
 	detected := make(map[string]bool)
 	results := []evaluator.RuleSetResult{}
 	for _, ruleset := range rulesets {
+		if !ruleset.AppliesTo(subject) {
+			continue
+		}
 		var result evaluator.RuleSetResult
 		result, err = r.evaluator.EvaluateRuleSet(subject, &ruleset)
 		if err != nil {
