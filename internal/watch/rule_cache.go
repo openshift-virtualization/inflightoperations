@@ -70,20 +70,26 @@ func (r *RuleCache) removeRule(or *api.OperationRuleSet) {
 	rulesets := r.cache[key]
 	for i := range rulesets {
 		if rulesets[i].Name == or.Name {
-			// Remove by swapping with last element and truncating
 			rulesets[i] = rulesets[len(rulesets)-1]
-			r.cache[key] = rulesets[:len(rulesets)-1]
+			rulesets = rulesets[:len(rulesets)-1]
+			if len(rulesets) == 0 {
+				delete(r.cache, key)
+			} else {
+				r.cache[key] = rulesets
+			}
 			return
 		}
 	}
 }
 
 // List returns all rulesets targeting the specified GVR
-func (r *RuleCache) List(gvr schema.GroupVersionResource) (rulesets []api.OperationRuleSet) {
+func (r *RuleCache) List(gvr schema.GroupVersionResource) []api.OperationRuleSet {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	rulesets = r.cache[gvr]
-	return
+	cached := r.cache[gvr]
+	rulesets := make([]api.OperationRuleSet, len(cached))
+	copy(rulesets, cached)
+	return rulesets
 }
 
 // GVRs returns a list of all GVRs that have at least one rule

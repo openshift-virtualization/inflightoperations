@@ -342,7 +342,7 @@ type Explain struct {
 // Total number of changes.
 func (r *Explain) Len() int {
 	r.build()
-	return len(r.Updated) + len(r.Updated) + len(r.Deleted)
+	return len(r.Added) + len(r.Updated) + len(r.Deleted)
 }
 
 // The delta is empty.

@@ -3,9 +3,10 @@ package watch
 import (
 	"context"
 	"fmt"
+	"maps"
 	"sync"
-	"time"
 
+	"github.com/ifo-operator/inflightoperations/settings"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
 )
@@ -31,7 +32,7 @@ func (r *WatchCache) Unlock() {
 }
 
 func (r *WatchCache) StartWithSync(gvr schema.GroupVersionResource, informer cache.SharedIndexInformer) (err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), settings.Settings.InformerSyncTimeout)
 	defer cancel()
 
 	w := NewWatch(gvr, informer)
@@ -64,11 +65,11 @@ func (r *WatchCache) Exists(gvr schema.GroupVersionResource) (ok bool) {
 }
 
 func (r *WatchCache) Prune(gvrs []schema.GroupVersionResource) {
-	keep := make(map[schema.GroupVersionResource]bool)
+	keep := make(map[schema.GroupVersionResource]bool, len(gvrs))
 	for _, gvr := range gvrs {
 		keep[gvr] = true
 	}
-	for gvr := range r.watches {
+	for gvr := range maps.Keys(r.watches) {
 		if !keep[gvr] {
 			r.Stop(gvr)
 		}
