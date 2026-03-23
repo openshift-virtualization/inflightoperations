@@ -414,3 +414,85 @@ func TestConditions_ChangeSet(t *testing.T) {
 	g.Expect(len(explain.Deleted)).To(gomega.Equal(1))
 	g.Expect(explain.Deleted["D"].Type).To(gomega.Equal("D"))
 }
+
+func TestExplainLen(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+	conditions := Conditions{
+		List: []Condition{
+			{Type: "A"},
+			{Type: "B"},
+		},
+	}
+	conditions.BeginStagingConditions()
+	conditions.SetCondition(Condition{Type: "A", Reason: "changed"}) // update
+	conditions.SetCondition(Condition{Type: "C"})                    // add
+	conditions.EndStagingConditions()
+	explain := conditions.Explain()
+
+	// 1 added (C) + 1 updated (A) + 1 deleted (B) = 3
+	g.Expect(explain.Len()).To(gomega.Equal(3))
+	g.Expect(explain.Empty()).To(gomega.BeFalse())
+}
+
+func TestExplainEmpty(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+	conditions := Conditions{
+		List: []Condition{
+			{Type: "A"},
+		},
+	}
+	conditions.BeginStagingConditions()
+	conditions.SetCondition(Condition{Type: "A"}) // no change
+	conditions.EndStagingConditions()
+	explain := conditions.Explain()
+
+	g.Expect(explain.Len()).To(gomega.Equal(0))
+	g.Expect(explain.Empty()).To(gomega.BeTrue())
+}
+
+func TestHasBlockerCondition(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+
+	t.Run("true with Critical", func(t *testing.T) {
+		g := gomega.NewGomegaWithT(t)
+		conditions := Conditions{}
+		conditions.SetCondition(Condition{Type: "Failing", Category: Critical, Status: True})
+		g.Expect(conditions.HasBlockerCondition()).To(gomega.BeTrue())
+	})
+	t.Run("true with Error", func(t *testing.T) {
+		g := gomega.NewGomegaWithT(t)
+		conditions := Conditions{}
+		conditions.SetCondition(Condition{Type: "BadConfig", Category: Error, Status: True})
+		g.Expect(conditions.HasBlockerCondition()).To(gomega.BeTrue())
+	})
+	t.Run("false with Warn", func(t *testing.T) {
+		conditions := Conditions{}
+		conditions.SetCondition(Condition{Type: "SlowDisk", Category: Warn, Status: True})
+		g.Expect(conditions.HasBlockerCondition()).To(gomega.BeFalse())
+	})
+	t.Run("false when empty", func(t *testing.T) {
+		conditions := Conditions{}
+		g.Expect(conditions.HasBlockerCondition()).To(gomega.BeFalse())
+	})
+}
+
+func TestIsReady(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+
+	t.Run("true when Ready=True", func(t *testing.T) {
+		g := gomega.NewGomegaWithT(t)
+		conditions := Conditions{}
+		conditions.SetCondition(Condition{Type: Ready, Status: True})
+		g.Expect(conditions.IsReady()).To(gomega.BeTrue())
+	})
+	t.Run("false when Ready=False", func(t *testing.T) {
+		g := gomega.NewGomegaWithT(t)
+		conditions := Conditions{}
+		conditions.SetCondition(Condition{Type: Ready, Status: False})
+		g.Expect(conditions.IsReady()).To(gomega.BeFalse())
+	})
+	t.Run("false when missing", func(t *testing.T) {
+		conditions := Conditions{}
+		g.Expect(conditions.IsReady()).To(gomega.BeFalse())
+	})
+}
