@@ -1,121 +1,182 @@
-# inflightoperations
-// TODO(user): Add simple overview of use/purpose
+# InFlightOperations
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+InFlightOperations is a Kubernetes operator that provides declarative, resource-agnostic operation tracking. It introduces two Custom Resource Definitions — `OperationRuleSet` and `InFlightOperation` — both in the `ifo.kubevirt.io/v1alpha1` API group.
 
-## Getting Started
+An `OperationRuleSet` lets you declare CEL (Common Expression Language) expressions that target any Kubernetes resource type by Group/Version/Resource. When a watched resource matches a rule's CEL expression — for example, a VirtualMachine whose status indicates it is migrating — the operator automatically creates an `InFlightOperation` resource that tracks that operation through its lifecycle (Active → Completed). The operator uses dynamic informers so it only watches resource types that have active rulesets, and it caches compiled CEL programs for performance.
+
+The core value is **operational visibility for cluster administrators**. Different components (KubeVirt, Forklift, CDI, OLM, etc.) can each publish their own `OperationRuleSet` definitions, and administrators can query `InFlightOperation` resources to get a unified view of what operations are currently in progress across the cluster — making it straightforward to understand cluster state, troubleshoot issues, and make informed decisions about when it is safe to perform maintenance or other disruptive actions.
+
+## How It Works
+
+**OperationRuleSet** — Declares what to watch and how to detect operations. Each ruleset targets a specific Kubernetes resource type (by Group/Version/Resource) and contains one or more CEL expressions that evaluate against those resources. When an expression matches, the operator knows an operation is in progress.
+
+**InFlightOperation** — Created automatically by the operator when a rule matches. Tracks the operation through its lifecycle (Active → Completed) with timestamps and references back to the source resource and detecting ruleset.
+
+### Example
+
+An `OperationRuleSet` targeting KubeVirt VirtualMachines:
+
+```yaml
+apiVersion: ifo.kubevirt.io/v1alpha1
+kind: OperationRuleSet
+metadata:
+  name: vm-lifecycle-rules
+spec:
+  component: kubevirt
+  target:
+    group: kubevirt.io
+    version: v1
+    resource: virtualmachines
+  rules:
+    - operation: Migrating
+      expression: "has(object.status.printableStatus) && object.status.printableStatus == 'Migrating'"
+    - operation: Starting
+      expression: "has(object.status.printableStatus) && object.status.printableStatus == 'Starting'"
+    - operation: Stopping
+      expression: "has(object.status.printableStatus) && object.status.printableStatus == 'Stopping'"
+```
+
+When a VirtualMachine enters the "Migrating" state, the operator automatically creates an `InFlightOperation`:
+
+```
+$ kubectl get ifos
+KIND               NAMESPACE   SUBJECT   OPERATION   PHASE    STARTED
+VirtualMachine     default     my-vm     Migrating   Active   2025-01-15T10:30:00Z
+```
+
+Administrators can query InFlightOperation resources to see at a glance what operations are in progress across the cluster.
+
+## Pre-Built Rules
+
+The `rules/` directory includes ready-to-use rulesets for common resource types:
+
+| RuleSet | Target | Component | Operations Detected |
+|---------|--------|-----------|-------------------|
+| vm-lifecycle-rules | `kubevirt.io/v1/virtualmachines` | kubevirt | Migrating, Starting, Stopping, Provisioning, Terminating, WaitingForReceiver |
+| vmi-rules | `kubevirt.io/v1/virtualmachineinstances` | kubevirt | Pending, Scheduling, Scheduled, Running, WaitingForSync, VCPUChange, MemoryChange |
+| vmim-rules | `kubevirt.io/v1/virtualmachineinstancemigrations` | kubevirt | Pending, Scheduling, Scheduled, Running, PreparingTarget |
+| datavolume-rules | `cdi.kubevirt.io/v1beta1/datavolumes` | kubevirt | Import, Clone, Upload, Expansion, and other CDI operations |
+| hco-rules | `hco.kubevirt.io/v1beta1/hyperconvergeds` | kubevirt | Deploying, Reconciling, Healing, Failing |
+| deployment-rules | `apps/v1/deployments` | — | Rollout in progress |
+| csv-rules | `operators.coreos.com/v1alpha1/clusterserviceversions` | olm | Pending, Installing, Replacing, Deleting, Failing |
+| installplan-rules | `operators.coreos.com/v1alpha1/installplans` | olm | Planning, Installing, RequiresApproval |
+| subscription-rules | `operators.coreos.com/v1alpha1/subscriptions` | olm | Unpacking, InstallPlanPending |
+
+## Installation
 
 ### Prerequisites
-- go version v1.24.6+
-- docker version 17.03+.
-- kubectl version v1.11.3+.
-- Access to a Kubernetes v1.11.3+ cluster.
 
-### To Deploy on the cluster
-**Build and push your image to the location specified by `IMG`:**
+- A Kubernetes cluster (v1.25+)
+- `kubectl` configured to access the cluster
+- For development: Go 1.25+, `podman` or `docker`
 
-```sh
-make docker-build docker-push IMG=<some-registry>/inflightoperations:tag
-```
+### Deploy to a Cluster
 
-**NOTE:** This image ought to be published in the personal registry you specified.
-And it is required to have access to pull the image from the working environment.
-Make sure you have the proper permission to the registry if the above commands don’t work.
-
-**Install the CRDs into the cluster:**
-
-```sh
+```bash
+# Install CRDs
 make install
+
+# Deploy the controller
+make deploy IMG=quay.io/ifo-operator/controller:<tag>
 ```
 
-**Deploy the Manager to the cluster with the image specified by `IMG`:**
+### Remove from a Cluster
 
-```sh
-make deploy IMG=<some-registry>/inflightoperations:tag
-```
-
-> **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
-privileges or be logged in as admin.
-
-**Create instances of your solution**
-You can apply the samples (examples) from the config/sample:
-
-```sh
-kubectl apply -k config/samples/
-```
-
->**NOTE**: Ensure that the samples has default values to test it out.
-
-### To Uninstall
-**Delete the instances (CRs) from the cluster:**
-
-```sh
-kubectl delete -k config/samples/
-```
-
-**Delete the APIs(CRDs) from the cluster:**
-
-```sh
+```bash
+make undeploy
 make uninstall
 ```
 
-**UnDeploy the controller from the cluster:**
+## Configuration
 
-```sh
-make undeploy
+The operator is configured via environment variables on the controller deployment:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DEBOUNCE_THRESHOLD` | `30s` | Grace period after an operation stops being detected before marking it Completed |
+| `INFORMER_SYNC_TIMEOUT` | `30s` | Timeout for Kubernetes informer synchronization |
+| `K8S_API_TIMEOUT` | `30s` | Timeout for Kubernetes API calls |
+| `K8S_INFORMER_RESYNC` | `30s` | Resync period for informers |
+| `RETAIN_COMPLETED_IFOS` | `false` | Whether to keep completed InFlightOperation resources |
+| `REQUEUE_INTERVAL` | `60s` | Reconciliation requeue interval |
+| `OPERATOR_VERSION` | — | Operator version identifier |
+
+## CRD Reference
+
+### OperationRuleSet
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `spec.component` | string | No | Owning component name (e.g., "kubevirt", "olm") |
+| `spec.target.group` | string | Yes | API group of the target resource |
+| `spec.target.version` | string | Yes | API version of the target resource |
+| `spec.target.resource` | string | Yes | Plural resource name |
+| `spec.rules[].operation` | string | Yes | Name of the operation to detect |
+| `spec.rules[].expression` | string | Yes | CEL expression evaluated against the resource |
+| `spec.namespaces` | []string | No | Namespaces to watch (empty = all) |
+| `spec.labels` | map | No | Static labels applied to created InFlightOperations |
+| `spec.labelExpressions` | []string | No | CEL expressions for dynamic label computation |
+
+Status fields: `conditions`, `watchActive`, `lastEvaluationTime`, `observedGeneration`.
+
+### InFlightOperation
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `spec.operation` | string | Yes | Name of the detected operation |
+| `spec.ruleSet` | string | No | Name of the detecting OperationRuleSet |
+| `spec.component` | string | No | Component name |
+| `spec.subject.apiVersion` | string | Yes | API version of the subject resource |
+| `spec.subject.kind` | string | Yes | Kind of the subject resource |
+| `spec.subject.name` | string | Yes | Name of the subject resource |
+| `spec.subject.namespace` | string | No | Namespace of the subject resource |
+| `spec.subject.uid` | string | No | UID of the subject resource |
+
+Status fields: `phase` (Active/Completed), `lastDetected`, `completed`, `detectedBy`, `subjectGeneration`, `conditions`.
+
+Short names: `ifo`/`ifos` for InFlightOperation, `ors` for OperationRuleSet.
+
+## Development
+
+```bash
+# Run tests
+make test
+
+# Run e2e tests (sets up a Kind cluster)
+make setup-test-e2e
+make test-e2e
+make cleanup-test-e2e
+
+# Build the binary
+make build
+
+# Build the container image
+make build-controller-image IMG=<image>
+
+# Run linter
+make lint
+
+# Generate CRDs and deepcopy methods
+make manifests generate
 ```
 
-## Project Distribution
+## Labels
 
-Following the options to release and provide this solution to the users.
+InFlightOperation resources are labeled for easy querying:
 
-### By providing a bundle with all YAML files
+- `ifo.kubevirt.io/subject-name` — Name of the subject resource
+- `ifo.kubevirt.io/subject-namespace` — Namespace of the subject resource
+- `ifo.kubevirt.io/subject-kind` — Kind of the subject resource
+- `ifo.kubevirt.io/subject-uid` — UID of the subject resource
+- `ifo.kubevirt.io/operation` — Operation name
+- `ifo.kubevirt.io/component` — Component name
+- `ifo.kubevirt.io/ruleset` — RuleSet name
 
-1. Build the installer for the image built and published in the registry:
+Example query — find all active operations on a specific VM:
 
-```sh
-make build-installer IMG=<some-registry>/inflightoperations:tag
+```bash
+kubectl get ifos -l ifo.kubevirt.io/subject-name=my-vm,ifo.kubevirt.io/subject-namespace=default
 ```
-
-**NOTE:** The makefile target mentioned above generates an 'install.yaml'
-file in the dist directory. This file contains all the resources built
-with Kustomize, which are necessary to install this project without its
-dependencies.
-
-2. Using the installer
-
-Users can just run 'kubectl apply -f <URL for YAML BUNDLE>' to install
-the project, i.e.:
-
-```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/inflightoperations/<tag or branch>/dist/install.yaml
-```
-
-### By providing a Helm Chart
-
-1. Build the chart using the optional helm plugin
-
-```sh
-kubebuilder edit --plugins=helm/v2-alpha
-```
-
-2. See that a chart was generated under 'dist/chart', and users
-can obtain this solution from there.
-
-**NOTE:** If you change the project, you need to update the Helm Chart
-using the same command above to sync the latest changes. Furthermore,
-if you create webhooks, you need to use the above command with
-the '--force' flag and manually ensure that any custom configuration
-previously added to 'dist/chart/values.yaml' or 'dist/chart/manager/manager.yaml'
-is manually re-applied afterwards.
-
-## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
-
-**NOTE:** Run `make help` for more information on all potential `make` targets
-
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
 
 ## License
 
@@ -132,4 +193,3 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
