@@ -1,0 +1,12 @@
+apiVersion: ifo.kubevirt.io/v1alpha1
+kind: OperationRuleSet
+metadata:
+  name: invalid-rules
+spec:
+  target:
+    group: apps
+    version: v1
+    resource: deployments
+  rules:
+    - operation: Bad
+      expression: "this is not valid CEL !!!"

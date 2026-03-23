@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: e2e-nsfilter
+  namespace: e2e-ns-included
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: e2e-nsfilter
+  template:
+    metadata:
+      labels:
+        app: e2e-nsfilter
+    spec:
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10
+          resources:
+            limits:
+              cpu: 10m
+              memory: 16Mi

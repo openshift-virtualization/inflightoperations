@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: e2e-delete
+  namespace: e2e-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: e2e-delete
+  template:
+    metadata:
+      labels:
+        app: e2e-delete
+    spec:
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10
+          resources:
+            limits:
+              cpu: 10m
+              memory: 16Mi

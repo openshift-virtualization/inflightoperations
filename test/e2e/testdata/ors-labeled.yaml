@@ -1,0 +1,17 @@
+apiVersion: ifo.kubevirt.io/v1alpha1
+kind: OperationRuleSet
+metadata:
+  name: labeled-rules
+spec:
+  target:
+    group: apps
+    version: v1
+    resource: deployments
+  namespaces: ["e2e-test"]
+  labels:
+    e2e-test-label: e2e-test-value
+  rules:
+    - operation: Rollout
+      expression: |
+        has(object.status) &&
+        (!has(object.status.availableReplicas) || (object.status.availableReplicas < object.spec.replicas))

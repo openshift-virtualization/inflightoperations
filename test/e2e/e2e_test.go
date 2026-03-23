@@ -266,19 +266,357 @@ var _ = Describe("Manager", Ordered, func() {
 			Eventually(verifyMetricsAvailable, 2*time.Minute).Should(Succeed())
 		})
 
-		// +kubebuilder:scaffold:e2e-webhooks-checks
+	})
 
-		// TODO: Customize the e2e test suite with scenarios specific to your project.
-		// Consider applying sample/CR(s) and check their status and/or verifying
-		// the reconciliation by using the metrics, i.e.:
-		// metricsOutput, err := getMetricsOutput()
-		// Expect(err).NotTo(HaveOccurred(), "Failed to retrieve logs from curl pod")
-		// Expect(metricsOutput).To(ContainSubstring(
-		//    fmt.Sprintf(`controller_runtime_reconcile_total{controller="%s",result="success"} 1`,
-		//    strings.ToLower(<Kind>),
-		// ))
+	Context("OperationRuleSet reconciliation", Ordered, func() {
+		const testNS = "e2e-test"
+
+		BeforeAll(func() {
+			By("creating test namespace")
+			cmd := exec.Command("kubectl", "create", "ns", testNS)
+			_, err := utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		AfterAll(func() {
+			By("cleaning up test resources")
+			cmd := exec.Command("kubectl", "delete", "ors", "--all", "--ignore-not-found")
+			_, _ = utils.Run(cmd)
+			cmd = exec.Command("kubectl", "delete", "ifo", "--all", "--ignore-not-found")
+			_, _ = utils.Run(cmd)
+			cmd = exec.Command("kubectl", "delete", "ns", testNS, "--ignore-not-found")
+			_, _ = utils.Run(cmd)
+		})
+
+		It("should reconcile an OperationRuleSet to Ready", func() {
+			By("applying the deployment OperationRuleSet")
+			kubectlApply("rules/deployment_operationrule.yaml")
+
+			By("waiting for the OperationRuleSet to become Ready")
+			verifyReady := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ors", "deployment-rules",
+					"-o", "jsonpath={.status.conditions[?(@.type=='Ready')].status}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("True"))
+			}
+			Eventually(verifyReady).Should(Succeed())
+
+			By("verifying the watch is active")
+			cmd := exec.Command("kubectl", "get", "ors", "deployment-rules",
+				"-o", "jsonpath={.status.watchActive}")
+			output, err := utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).To(Equal("true"))
+
+			By("verifying the finalizer is present")
+			cmd = exec.Command("kubectl", "get", "ors", "deployment-rules",
+				"-o", "jsonpath={.metadata.finalizers[0]}")
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).To(Equal("ifo.kubevirt.io/finalizer"))
+		})
+
+		It("should reject an OperationRuleSet with an invalid CEL expression", func() {
+			By("applying an OperationRuleSet with invalid CEL")
+			kubectlApply(testdataPath("ors-invalid.yaml"))
+
+			By("waiting for the InvalidRule condition")
+			verifyInvalid := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ors", "invalid-rules",
+					"-o", "jsonpath={.status.conditions[?(@.type=='InvalidRule')].status}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("True"))
+			}
+			Eventually(verifyInvalid).Should(Succeed())
+
+			By("verifying Ready is not True")
+			cmd := exec.Command("kubectl", "get", "ors", "invalid-rules",
+				"-o", "jsonpath={.status.conditions[?(@.type=='Ready')].status}")
+			output, err := utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).NotTo(Equal("True"))
+
+			By("cleaning up invalid ruleset")
+			kubectlDelete(testdataPath("ors-invalid.yaml"))
+		})
+
+		It("should create an InFlightOperation when a Deployment rolls out", func() {
+			By("creating a Deployment that will trigger a Rollout operation")
+			kubectlApply(testdataPath("deploy-rollout.yaml"))
+
+			By("waiting for an InFlightOperation to be created for the Deployment")
+			verifyIFOCreated := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ifo",
+					"-l", fmt.Sprintf("ifo.kubevirt.io/subject-name=e2e-rollout,ifo.kubevirt.io/subject-namespace=%s", testNS),
+					"-o", "jsonpath={.items[0].spec.operation}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("Rollout"))
+			}
+			Eventually(verifyIFOCreated).Should(Succeed())
+
+			By("verifying IFO labels")
+			cmd := exec.Command("kubectl", "get", "ifo",
+				"-l", fmt.Sprintf("ifo.kubevirt.io/subject-name=e2e-rollout,ifo.kubevirt.io/subject-namespace=%s", testNS),
+				"-o", "jsonpath={.items[0].metadata.labels.ifo\\.kubevirt\\.io/operation}")
+			output, err := utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).To(Equal("Rollout"))
+
+			By("verifying IFO subject fields")
+			cmd = exec.Command("kubectl", "get", "ifo",
+				"-l", fmt.Sprintf("ifo.kubevirt.io/subject-name=e2e-rollout,ifo.kubevirt.io/subject-namespace=%s", testNS),
+				"-o", "jsonpath={.items[0].spec.subject.kind}")
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).To(Equal("Deployment"))
+		})
+
+		It("should complete or clean up the IFO when the rollout finishes", func() {
+			By("waiting for the Deployment to be fully available")
+			verifyAvailable := func(g Gomega) {
+				cmd := exec.Command("kubectl", "rollout", "status",
+					"deployment/e2e-rollout", "-n", testNS, "--timeout=10s")
+				_, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+			Eventually(verifyAvailable, 3*time.Minute, 5*time.Second).Should(Succeed())
+
+			By("waiting for the IFO to be completed or deleted")
+			verifyCompleted := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ifo",
+					"-l", fmt.Sprintf("ifo.kubevirt.io/subject-name=e2e-rollout,ifo.kubevirt.io/subject-namespace=%s", testNS),
+					"-o", "jsonpath={.items}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				// With RetainCompletedIFOs=false (default), the IFO should be deleted.
+				// If retained, it should show Completed phase.
+				if output == "[]" || output == "" {
+					return // deleted — success
+				}
+				// If still present, it should be Completed
+				cmd = exec.Command("kubectl", "get", "ifo",
+					"-l", fmt.Sprintf("ifo.kubevirt.io/subject-name=e2e-rollout,ifo.kubevirt.io/subject-namespace=%s", testNS),
+					"-o", "jsonpath={.items[0].status.phase}")
+				phase, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(phase).To(Equal("Completed"))
+			}
+			Eventually(verifyCompleted, 3*time.Minute, 5*time.Second).Should(Succeed())
+
+			By("cleaning up the test Deployment")
+			kubectlDelete(testdataPath("deploy-rollout.yaml"))
+		})
+
+		It("should apply static labels from the OperationRuleSet to IFOs", func() {
+			By("applying an OperationRuleSet with static labels")
+			kubectlApply(testdataPath("ors-labeled.yaml"))
+
+			By("waiting for the ruleset to be Ready")
+			verifyReady := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ors", "labeled-rules",
+					"-o", "jsonpath={.status.conditions[?(@.type=='Ready')].status}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("True"))
+			}
+			Eventually(verifyReady).Should(Succeed())
+
+			By("creating a Deployment to trigger an IFO")
+			kubectlApply(testdataPath("deploy-labels.yaml"))
+
+			By("verifying the IFO has the static label")
+			verifyLabel := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ifo",
+					"-l", fmt.Sprintf("ifo.kubevirt.io/subject-name=e2e-labels,ifo.kubevirt.io/ruleset=labeled-rules,ifo.kubevirt.io/subject-namespace=%s", testNS),
+					"-o", "jsonpath={.items[0].metadata.labels.e2e-test-label}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("e2e-test-value"))
+			}
+			Eventually(verifyLabel).Should(Succeed())
+
+			By("cleaning up")
+			kubectlDelete(testdataPath("deploy-labels.yaml"))
+			kubectlDelete(testdataPath("ors-labeled.yaml"))
+		})
+
+		It("should apply dynamic labels from labelExpressions to IFOs", func() {
+			By("applying an OperationRuleSet with label expressions")
+			kubectlApply(testdataPath("ors-dynamic-labels.yaml"))
+
+			By("waiting for the ruleset to be Ready")
+			verifyReady := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ors", "dynamic-label-rules",
+					"-o", "jsonpath={.status.conditions[?(@.type=='Ready')].status}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("True"))
+			}
+			Eventually(verifyReady).Should(Succeed())
+
+			By("creating a Deployment to trigger an IFO")
+			kubectlApply(testdataPath("deploy-dynlabel.yaml"))
+
+			By("verifying the IFO has the dynamic label")
+			verifyLabel := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ifo",
+					"-l", fmt.Sprintf("ifo.kubevirt.io/subject-name=e2e-dynlabel,ifo.kubevirt.io/subject-namespace=%s", testNS),
+					"-o", "jsonpath={.items[0].metadata.labels.e2e-dynamic-ns}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal(testNS))
+			}
+			Eventually(verifyLabel).Should(Succeed())
+
+			By("cleaning up")
+			kubectlDelete(testdataPath("deploy-dynlabel.yaml"))
+			kubectlDelete(testdataPath("ors-dynamic-labels.yaml"))
+		})
+
+		It("should only create IFOs for namespaces specified in the ruleset", func() {
+			const includedNS = "e2e-ns-included"
+			const excludedNS = "e2e-ns-excluded"
+
+			By("creating test namespaces")
+			for _, ns := range []string{includedNS, excludedNS} {
+				cmd := exec.Command("kubectl", "create", "ns", ns)
+				_, err := utils.Run(cmd)
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			By("applying an OperationRuleSet that only targets the included namespace")
+			kubectlApply(testdataPath("ors-ns-filter.yaml"))
+
+			By("waiting for the ruleset to be Ready")
+			verifyReady := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ors", "ns-filter-rules",
+					"-o", "jsonpath={.status.conditions[?(@.type=='Ready')].status}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("True"))
+			}
+			Eventually(verifyReady).Should(Succeed())
+
+			By("creating Deployments in both namespaces")
+			kubectlApply(testdataPath("deploy-nsfilter-included.yaml"))
+			kubectlApply(testdataPath("deploy-nsfilter-excluded.yaml"))
+
+			By("verifying an IFO is created for the included namespace")
+			verifyIncluded := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ifo",
+					"-l", fmt.Sprintf("ifo.kubevirt.io/subject-name=e2e-nsfilter,ifo.kubevirt.io/subject-namespace=%s,ifo.kubevirt.io/ruleset=ns-filter-rules", includedNS),
+					"-o", "jsonpath={.items[0].spec.operation}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("Rollout"))
+			}
+			Eventually(verifyIncluded).Should(Succeed())
+
+			By("verifying no IFO is created for the excluded namespace")
+			Consistently(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ifo",
+					"-l", fmt.Sprintf("ifo.kubevirt.io/subject-name=e2e-nsfilter,ifo.kubevirt.io/subject-namespace=%s,ifo.kubevirt.io/ruleset=ns-filter-rules", excludedNS),
+					"-o", "jsonpath={.items}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(SatisfyAny(Equal("[]"), BeEmpty()))
+			}, 15*time.Second, 3*time.Second).Should(Succeed())
+
+			By("cleaning up")
+			kubectlDelete(testdataPath("ors-ns-filter.yaml"))
+			kubectlDelete(testdataPath("deploy-nsfilter-included.yaml"))
+			kubectlDelete(testdataPath("deploy-nsfilter-excluded.yaml"))
+			for _, ns := range []string{includedNS, excludedNS} {
+				cmd := exec.Command("kubectl", "delete", "ns", ns, "--ignore-not-found")
+				_, _ = utils.Run(cmd)
+			}
+		})
+
+		It("should clean up when an OperationRuleSet is deleted", func() {
+			By("applying a temporary OperationRuleSet")
+			kubectlApply(testdataPath("ors-temp.yaml"))
+
+			By("waiting for it to be Ready")
+			verifyReady := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ors", "temp-rules",
+					"-o", "jsonpath={.status.conditions[?(@.type=='Ready')].status}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("True"))
+			}
+			Eventually(verifyReady).Should(Succeed())
+
+			By("deleting the OperationRuleSet")
+			cmd := exec.Command("kubectl", "delete", "ors", "temp-rules")
+			_, err := utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying it is fully deleted (finalizer ran)")
+			verifyDeleted := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ors", "temp-rules",
+					"--ignore-not-found", "-o", "jsonpath={.metadata.name}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(BeEmpty())
+			}
+			Eventually(verifyDeleted, 30*time.Second, 2*time.Second).Should(Succeed())
+		})
+
+		It("should clean up IFOs when the subject is deleted", func() {
+			By("creating a Deployment that will trigger an IFO")
+			kubectlApply(testdataPath("deploy-delete.yaml"))
+
+			By("waiting for an IFO to be created")
+			verifyIFO := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ifo",
+					"-l", fmt.Sprintf("ifo.kubevirt.io/subject-name=e2e-delete,ifo.kubevirt.io/subject-namespace=%s", testNS),
+					"-o", "jsonpath={.items[0].spec.operation}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("Rollout"))
+			}
+			Eventually(verifyIFO).Should(Succeed())
+
+			By("deleting the Deployment")
+			cmd := exec.Command("kubectl", "delete", "deployment", "e2e-delete", "-n", testNS)
+			_, err := utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying all IFOs for this subject are deleted")
+			verifyNoIFOs := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ifo",
+					"-l", fmt.Sprintf("ifo.kubevirt.io/subject-name=e2e-delete,ifo.kubevirt.io/subject-namespace=%s", testNS),
+					"-o", "jsonpath={.items}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(SatisfyAny(Equal("[]"), BeEmpty()))
+			}
+			Eventually(verifyNoIFOs).Should(Succeed())
+		})
 	})
 })
+
+// testdataPath returns the path to a fixture file in the testdata directory,
+// relative to the project root (since utils.Run sets cwd to the project root).
+func testdataPath(name string) string {
+	return filepath.Join("test", "e2e", "testdata", name)
+}
+
+// kubectlApply applies a YAML file. The path is relative to the project root.
+func kubectlApply(path string) {
+	cmd := exec.Command("kubectl", "apply", "-f", path)
+	_, err := utils.Run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to apply %s", path)
+}
+
+// kubectlDelete deletes resources defined in a YAML file, ignoring not-found errors.
+func kubectlDelete(path string) {
+	cmd := exec.Command("kubectl", "delete", "-f", path, "--ignore-not-found")
+	_, _ = utils.Run(cmd)
+}
 
 // serviceAccountToken returns a token for the specified service account in the given namespace.
 // It uses the Kubernetes TokenRequest API to generate a token by directly sending a request
