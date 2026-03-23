@@ -190,6 +190,7 @@ func (r *OperationRuleSetReconciler) Setup(_ context.Context, rule *api.Operatio
 	r.Rules.AddOrUpdateRule(rule)
 	err := r.Watcher.Register(rule.GVR())
 	if err != nil {
+		r.Rules.RemoveRule(rule)
 		return err
 	}
 	return nil
@@ -225,6 +226,9 @@ func (r *OperationRuleSetReconciler) Initialize(mgr ctrl.Manager) error {
 	r.Evaluator = eval
 	r.Rules = rules
 	r.Watcher = watcher
+	if err = mgr.Add(watcher); err != nil {
+		return liberr.Wrap(err)
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&api.OperationRuleSet{}).
 		Named(Name).

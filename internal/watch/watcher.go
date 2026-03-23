@@ -53,6 +53,22 @@ func NewWatcher(client client.Client, dynamicClient dynamic.Interface, rules *Ru
 	}
 }
 
+// Start blocks until the context is cancelled, then shuts down all watches.
+// This implements the controller-runtime Runnable interface.
+func (r *Watcher) Start(ctx context.Context) error {
+	<-ctx.Done()
+	r.Shutdown()
+	return nil
+}
+
+// Shutdown stops all active watches and the informer factory.
+func (r *Watcher) Shutdown() {
+	r.cache.Lock()
+	defer r.cache.Unlock()
+	r.cache.StopAll()
+	r.informerFactory.Shutdown()
+}
+
 // Register a new watch for a GVR.
 func (r *Watcher) Register(gvr schema.GroupVersionResource) (err error) {
 	r.cache.Lock()

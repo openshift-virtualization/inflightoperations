@@ -3,7 +3,6 @@ package watch
 import (
 	"context"
 	"fmt"
-	"maps"
 	"sync"
 
 	"github.com/ifo-operator/inflightoperations/internal/metrics"
@@ -67,12 +66,18 @@ func (r *WatchCache) Exists(gvr schema.GroupVersionResource) (ok bool) {
 	return
 }
 
+func (r *WatchCache) StopAll() {
+	for gvr := range r.watches {
+		r.Stop(gvr)
+	}
+}
+
 func (r *WatchCache) Prune(gvrs []schema.GroupVersionResource) {
 	keep := make(map[schema.GroupVersionResource]bool, len(gvrs))
 	for _, gvr := range gvrs {
 		keep[gvr] = true
 	}
-	for gvr := range maps.Keys(r.watches) {
+	for gvr := range r.watches {
 		if !keep[gvr] {
 			r.Stop(gvr)
 		}
@@ -112,6 +117,9 @@ func (r *Watch) Start() {
 }
 
 func (r *Watch) Stop() {
+	if !r.running {
+		return
+	}
 	close(r.stopCh)
 	r.running = false
 }
