@@ -283,10 +283,20 @@ func (r *OperationRuleSetReconciler) validateTargetGVR(or *api.OperationRuleSet)
 
 // validateExpressions validates CEL expressions by attempting to compile them
 func (r *OperationRuleSetReconciler) validateExpressions(or *api.OperationRuleSet) (err error) {
+	emptySubject := &unstructured.Unstructured{}
 	for _, rule := range or.Rules() {
 		_, err = r.Evaluator.Evaluate(
-			&unstructured.Unstructured{},
+			emptySubject,
 			&rule,
+		)
+		if err != nil {
+			return
+		}
+	}
+	for _, le := range or.Spec.LabelExpressions {
+		_, err = r.Evaluator.EvaluateLabelExpression(
+			emptySubject,
+			le.Expression,
 		)
 		if err != nil {
 			return

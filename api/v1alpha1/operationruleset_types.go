@@ -49,6 +49,17 @@ type Rule struct {
 	Expression string `json:"expression"`
 }
 
+// LabelExpression defines a CEL expression that produces a label value
+type LabelExpression struct {
+	// Key is the label key to set on the InFlightOperation
+	// +kubebuilder:validation:Required
+	Key string `json:"key"`
+
+	// Expression is a CEL expression that returns a string value
+	// +kubebuilder:validation:Required
+	Expression string `json:"expression"`
+}
+
 // OperationRuleSetSpec defines the desired state of OperationRuleSet
 type OperationRuleSetSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -77,8 +88,9 @@ type OperationRuleSetSpec struct {
 	// Labels to attach to all IFOs created by this ruleset.
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
-	// LabelExpressions are evaluated to dynamically assign labels to IFOs.
-	LabelExpressions []string `json:"labelExpressions,omitempty"`
+	// LabelExpressions are CEL expressions evaluated against the resource to dynamically assign labels to IFOs.
+	// +optional
+	LabelExpressions []LabelExpression `json:"labelExpressions,omitempty"`
 }
 
 // OperationRuleSetStatus defines the observed state of OperationRuleSet.

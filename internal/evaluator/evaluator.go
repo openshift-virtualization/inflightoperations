@@ -10,12 +10,16 @@ import (
 type RuleSetResult struct {
 	RuleSet    *api.OperationRuleSet
 	Operations []string
+	Labels     map[string]string
 }
 
 // Evaluator provides CEL expression evaluation for Kubernetes resources
 type Evaluator interface {
 	// Evaluate evaluates a single CEL expression against an unstructured object
 	Evaluate(subject *api.Subject, rule *api.Rule) (bool, error)
+
+	// EvaluateLabelExpression evaluates a CEL expression that returns a string value
+	EvaluateLabelExpression(subject *api.Subject, expression string) (string, error)
 
 	// EvaluateRuleSet evaluates a RuleSet and returns as RuleSetResult.
 	EvaluateRuleSet(subject *api.Subject, ruleset *api.OperationRuleSet) (RuleSetResult, error)
@@ -65,10 +69,37 @@ func (r *celEvaluator) Evaluate(subject *api.Subject, rule *api.Rule) (value boo
 	return
 }
 
-// EvaluateRules evaluates all rules and returns matching operation names
+// EvaluateLabelExpression evaluates a CEL expression that returns a string value
+func (r *celEvaluator) EvaluateLabelExpression(subject *api.Subject, expression string) (value string, err error) {
+	prog, err := r.programCache.GetOrCompile(expression)
+	if err != nil {
+		err = liberr.Wrap(err)
+		return
+	}
+
+	vars := map[string]interface{}{
+		"object": subject.Object,
+	}
+
+	out, _, err := prog.Eval(vars)
+	if err != nil {
+		err = liberr.Wrap(err)
+		return
+	}
+
+	value, ok := out.Value().(string)
+	if !ok {
+		err = fmt.Errorf("label expression did not return a string value, got: %v (type: %T)", out.Value(), out.Value())
+		return
+	}
+	return
+}
+
+// EvaluateRuleSet evaluates all rules and returns matching operation names
 func (r *celEvaluator) EvaluateRuleSet(subject *api.Subject, ruleset *api.OperationRuleSet) (result RuleSetResult, err error) {
 	result = RuleSetResult{
 		RuleSet: ruleset,
+		Labels:  make(map[string]string),
 	}
 	for _, rule := range ruleset.Rules() {
 		var matched bool
@@ -80,6 +111,13 @@ func (r *celEvaluator) EvaluateRuleSet(subject *api.Subject, ruleset *api.Operat
 		if matched {
 			result.Operations = append(result.Operations, rule.Operation)
 		}
+	}
+	for _, le := range ruleset.Spec.LabelExpressions {
+		val, lErr := r.EvaluateLabelExpression(subject, le.Expression)
+		if lErr != nil {
+			continue
+		}
+		result.Labels[le.Key] = val
 	}
 	return
 }

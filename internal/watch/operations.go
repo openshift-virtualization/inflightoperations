@@ -45,11 +45,11 @@ func (r *Operations) List(ctx context.Context, subject *api.Subject) (list *api.
 	return
 }
 
-func (r *Operations) Build(subject *api.Subject, operation string, ruleset *api.OperationRuleSet) (op *api.InFlightOperation) {
+func (r *Operations) Build(subject *api.Subject, operation string, ruleset *api.OperationRuleSet, dynamicLabels map[string]string) (op *api.InFlightOperation) {
 	op = &api.InFlightOperation{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-", subject.GetName()),
-			Labels:       r.operationLabels(subject, operation, ruleset),
+			Labels:       r.operationLabels(subject, operation, ruleset, dynamicLabels),
 		},
 		Spec: api.InFlightOperationSpec{
 			Operation: operation,
@@ -104,13 +104,20 @@ func (r *Operations) subjectLabels(subject *api.Subject) map[string]string {
 	}
 }
 
-func (r *Operations) operationLabels(subject *api.Subject, operation string, ruleset *api.OperationRuleSet) map[string]string {
-	labels := r.subjectLabels(subject)
-	labels[api.LabelOperation] = operation
-	labels[api.LabelRuleSet] = ruleset.Name
-	labels[api.LabelComponent] = ruleset.Spec.Component
+func (r *Operations) operationLabels(subject *api.Subject, operation string, ruleset *api.OperationRuleSet, dynamicLabels map[string]string) map[string]string {
+	// Merge order: dynamic labels (lowest), static labels, built-in labels (highest)
+	labels := make(map[string]string)
+	for k, v := range dynamicLabels {
+		labels[k] = v
+	}
 	for k, v := range ruleset.Spec.Labels {
 		labels[k] = v
 	}
+	for k, v := range r.subjectLabels(subject) {
+		labels[k] = v
+	}
+	labels[api.LabelOperation] = operation
+	labels[api.LabelRuleSet] = ruleset.Name
+	labels[api.LabelComponent] = ruleset.Spec.Component
 	return labels
 }

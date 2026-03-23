@@ -169,7 +169,7 @@ func (r *Watcher) handle(obj any, gvr schema.GroupVersionResource) (err error) {
 
 	for _, result := range results {
 		for _, operation := range result.Operations {
-			op := r.operations.Build(subject, operation, result.RuleSet)
+			op := r.operations.Build(subject, operation, result.RuleSet, result.Labels)
 			op, err = r.operations.Ensure(ctx, op)
 			if err != nil {
 				r.log.Error(err, "Failed to ensure operation", "subject", subject.GetName(), "namespace", subject.GetNamespace())

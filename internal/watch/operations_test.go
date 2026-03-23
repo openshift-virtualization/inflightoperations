@@ -37,7 +37,7 @@ func TestBuild(t *testing.T) {
 	subject := makeTestSubject("my-vm", "default", "VirtualMachine", "kubevirt.io/v1", "abc-123")
 	ruleset := makeTestRuleSet("vm-rules", "kubevirt")
 
-	ifo := ops.Build(subject, "Migrating", ruleset)
+	ifo := ops.Build(subject, "Migrating", ruleset, nil)
 
 	if ifo.Spec.Operation != "Migrating" {
 		t.Errorf("expected operation Migrating, got %s", ifo.Spec.Operation)
@@ -95,7 +95,7 @@ func TestOperationLabels(t *testing.T) {
 	subject := makeTestSubject("my-vm", "default", "VirtualMachine", "kubevirt.io/v1", "uid-123")
 	ruleset := makeTestRuleSet("vm-rules", "kubevirt")
 
-	labels := ops.operationLabels(subject, "Migrating", ruleset)
+	labels := ops.operationLabels(subject, "Migrating", ruleset, nil)
 
 	if labels[api.LabelOperation] != "Migrating" {
 		t.Errorf("expected operation label Migrating, got %s", labels[api.LabelOperation])
@@ -109,6 +109,72 @@ func TestOperationLabels(t *testing.T) {
 	// Should also include subject labels
 	if labels[api.LabelSubjectName] != "my-vm" {
 		t.Errorf("expected subject name label my-vm, got %s", labels[api.LabelSubjectName])
+	}
+}
+
+func TestOperationLabelsWithDynamicLabels(t *testing.T) {
+	ops := &Operations{}
+	subject := makeTestSubject("my-vm", "default", "VirtualMachine", "kubevirt.io/v1", "uid-123")
+	ruleset := makeTestRuleSet("vm-rules", "kubevirt")
+	dynamicLabels := map[string]string{
+		"node":  "node-1",
+		"phase": "Migrating",
+	}
+
+	labels := ops.operationLabels(subject, "Migrating", ruleset, dynamicLabels)
+
+	if labels["node"] != "node-1" {
+		t.Errorf("expected node=node-1, got %s", labels["node"])
+	}
+	if labels["phase"] != "Migrating" {
+		t.Errorf("expected phase=Migrating, got %s", labels["phase"])
+	}
+	// Built-in labels should still be present
+	if labels[api.LabelOperation] != "Migrating" {
+		t.Errorf("expected operation label Migrating, got %s", labels[api.LabelOperation])
+	}
+}
+
+func TestOperationLabelsBuiltinOverrideDynamic(t *testing.T) {
+	ops := &Operations{}
+	subject := makeTestSubject("my-vm", "default", "VirtualMachine", "kubevirt.io/v1", "uid-123")
+	ruleset := makeTestRuleSet("vm-rules", "kubevirt")
+	// Dynamic labels try to override built-in labels — built-in should win
+	dynamicLabels := map[string]string{
+		api.LabelSubjectName: "hacked",
+		api.LabelOperation:   "hacked",
+	}
+
+	labels := ops.operationLabels(subject, "Migrating", ruleset, dynamicLabels)
+
+	if labels[api.LabelSubjectName] != "my-vm" {
+		t.Errorf("built-in label should win: expected my-vm, got %s", labels[api.LabelSubjectName])
+	}
+	if labels[api.LabelOperation] != "Migrating" {
+		t.Errorf("built-in label should win: expected Migrating, got %s", labels[api.LabelOperation])
+	}
+}
+
+func TestOperationLabelsStaticOverrideDynamic(t *testing.T) {
+	ops := &Operations{}
+	subject := makeTestSubject("my-vm", "default", "VirtualMachine", "kubevirt.io/v1", "uid-123")
+	ruleset := &api.OperationRuleSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "vm-rules"},
+		Spec: api.OperationRuleSetSpec{
+			Component: "kubevirt",
+			Labels: map[string]string{
+				"shared-key": "static-value",
+			},
+		},
+	}
+	dynamicLabels := map[string]string{
+		"shared-key": "dynamic-value",
+	}
+
+	labels := ops.operationLabels(subject, "Migrating", ruleset, dynamicLabels)
+
+	if labels["shared-key"] != "static-value" {
+		t.Errorf("static label should win over dynamic: expected static-value, got %s", labels["shared-key"])
 	}
 }
 
@@ -126,7 +192,7 @@ func TestOperationLabelsWithStaticLabels(t *testing.T) {
 		},
 	}
 
-	labels := ops.operationLabels(subject, "Migrating", ruleset)
+	labels := ops.operationLabels(subject, "Migrating", ruleset, nil)
 
 	if labels["custom-label"] != "custom-value" {
 		t.Errorf("expected custom-label=custom-value, got %s", labels["custom-label"])
