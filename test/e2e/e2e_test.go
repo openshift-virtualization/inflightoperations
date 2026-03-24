@@ -81,6 +81,10 @@ var _ = Describe("Manager", Ordered, func() {
 		cmd := exec.Command("kubectl", "delete", "pod", "curl-metrics", "-n", namespace)
 		_, _ = utils.Run(cmd)
 
+		By("removing the metrics ClusterRoleBinding")
+		cmd = exec.Command("kubectl", "delete", "clusterrolebinding", metricsRoleBindingName, "--ignore-not-found")
+		_, _ = utils.Run(cmd)
+
 		By("undeploying the controller-manager")
 		cmd = exec.Command("make", "undeploy")
 		_, _ = utils.Run(cmd)
@@ -463,7 +467,7 @@ var _ = Describe("Manager", Ordered, func() {
 			By("verifying the IFO has the dynamic label")
 			verifyLabel := func(g Gomega) {
 				cmd := exec.Command("kubectl", "get", "ifo",
-					"-l", fmt.Sprintf("ifo.kubevirt.io/subject-name=e2e-dynlabel,ifo.kubevirt.io/subject-namespace=%s", testNS),
+					"-l", fmt.Sprintf("ifo.kubevirt.io/subject-name=e2e-dynlabel,ifo.kubevirt.io/ruleset=dynamic-label-rules,ifo.kubevirt.io/subject-namespace=%s", testNS),
 					"-o", "jsonpath={.items[0].metadata.labels.e2e-dynamic-ns}")
 				output, err := utils.Run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())

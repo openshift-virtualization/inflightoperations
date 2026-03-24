@@ -15,6 +15,9 @@ type RuleSetResult struct {
 
 // Evaluator provides CEL expression evaluation for Kubernetes resources
 type Evaluator interface {
+	// Compile checks that a CEL expression is syntactically valid without evaluating it.
+	Compile(expression string) error
+
 	// Evaluate evaluates a single CEL expression against an unstructured object
 	Evaluate(subject *api.Subject, rule *api.Rule) (bool, error)
 
@@ -40,6 +43,12 @@ func NewEvaluator() (Evaluator, error) {
 	return &celEvaluator{
 		programCache: cache,
 	}, nil
+}
+
+// Compile checks that a CEL expression is syntactically valid without evaluating it.
+func (r *celEvaluator) Compile(expression string) error {
+	_, err := r.programCache.GetOrCompile(expression)
+	return err
 }
 
 // Evaluate evaluates a single CEL expression against an unstructured object

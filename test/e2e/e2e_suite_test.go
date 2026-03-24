@@ -33,7 +33,10 @@ import (
 
 var (
 	// managerImage is the manager image to be built and loaded for testing.
-	managerImage = "example.com/inflightoperations:v0.0.1"
+	// This must match the Makefile default (IMG) to avoid dirtying
+	// config/manager/kustomization.yaml when `make deploy` runs
+	// `kustomize edit set image`.
+	managerImage = "quay.io/ifo-operator/controller:v99.0.0"
 	// shouldCleanupCertManager tracks whether CertManager was installed by this suite.
 	shouldCleanupCertManager = false
 )
@@ -50,7 +53,7 @@ func TestE2E(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	By("building the manager image")
-	cmd := exec.Command("make", "docker-build", fmt.Sprintf("IMG=%s", managerImage))
+	cmd := exec.Command("make", "build-controller-image", fmt.Sprintf("IMG=%s", managerImage))
 	_, err := utils.Run(cmd)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to build the manager image")
 

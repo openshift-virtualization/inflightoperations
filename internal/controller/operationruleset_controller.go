@@ -27,7 +27,6 @@ import (
 	"github.com/ifo-operator/inflightoperations/lib/logging"
 	"github.com/ifo-operator/inflightoperations/settings"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/discovery"
@@ -119,6 +118,7 @@ func (r *OperationRuleSetReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		err = r.Setup(ctx, operationRule)
 		if err != nil {
 			r.Log.Error(err, "Failed to ensure watch", "gvr", operationRule.GVR().String())
+			operationRule.Status.WatchActive = false
 			operationRule.Status.SetCondition(libcnd.Condition{
 				Type:    api.TypeWatchFailed,
 				Status:  api.True,
@@ -127,6 +127,7 @@ func (r *OperationRuleSetReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			})
 			result.RequeueAfter = Settings.RequeueInterval
 		} else {
+			operationRule.Status.WatchActive = true
 			operationRule.Status.SetCondition(
 				libcnd.Condition{
 					Type:     api.TypeReady,
@@ -278,26 +279,17 @@ func (r *OperationRuleSetReconciler) validateTargetGVR(or *api.OperationRuleSet)
 	return fmt.Errorf("resource %s not found in %s", gvr.Resource, gvr.GroupVersion().String())
 }
 
-// validateExpressions validates CEL expressions by attempting to compile them
-func (r *OperationRuleSetReconciler) validateExpressions(or *api.OperationRuleSet) (err error) {
-	emptySubject := &unstructured.Unstructured{}
+// validateExpressions validates CEL expressions by compiling them.
+func (r *OperationRuleSetReconciler) validateExpressions(or *api.OperationRuleSet) error {
 	for _, rule := range or.Rules() {
-		_, err = r.Evaluator.Evaluate(
-			emptySubject,
-			&rule,
-		)
-		if err != nil {
-			return
+		if err := r.Evaluator.Compile(rule.Expression); err != nil {
+			return err
 		}
 	}
 	for _, le := range or.Spec.LabelExpressions {
-		_, err = r.Evaluator.EvaluateLabelExpression(
-			emptySubject,
-			le.Expression,
-		)
-		if err != nil {
-			return
+		if err := r.Evaluator.Compile(le.Expression); err != nil {
+			return err
 		}
 	}
-	return
+	return nil
 }
