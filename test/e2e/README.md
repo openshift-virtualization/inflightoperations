@@ -5,7 +5,7 @@ These tests validate the InFlightOperations operator against a live Kubernetes c
 ## Prerequisites
 
 - [Kind](https://kind.sigs.k8s.io/) installed
-- Docker running (for building the operator image)
+- `podman` or `docker` running (for building the operator image)
 - `kubectl` configured
 
 ## Running

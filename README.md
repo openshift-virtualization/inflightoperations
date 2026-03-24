@@ -115,7 +115,7 @@ The operator is configured via environment variables on the controller deploymen
 | `spec.rules[].expression` | string | Yes | CEL expression evaluated against the resource |
 | `spec.namespaces` | []string | No | Namespaces to watch (empty = all) |
 | `spec.labels` | map | No | Static labels applied to created InFlightOperations |
-| `spec.labelExpressions` | []string | No | CEL expressions for dynamic label computation |
+| `spec.labelExpressions` | []object | No | CEL expressions for dynamic label computation; each entry has `key` (label key) and `expression` (CEL returning a string) |
 
 Status fields: `conditions`, `watchActive`, `lastEvaluationTime`, `observedGeneration`.
 
