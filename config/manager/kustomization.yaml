@@ -5,4 +5,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: quay.io/ifo-operator/controller
-  newTag: v99.0.0
+  newTag: v0.0.2

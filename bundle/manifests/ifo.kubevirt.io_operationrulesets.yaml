@@ -46,10 +46,23 @@ spec:
                   to, e.g. KubeVirt or Forklift.
                 type: string
               labelExpressions:
-                description: LabelExpressions are evaluated to dynamically assign
-                  labels to IFOs.
+                description: LabelExpressions are CEL expressions evaluated against
+                  the resource to dynamically assign labels to IFOs.
                 items:
-                  type: string
+                  description: LabelExpression defines a CEL expression that produces
+                    a label value
+                  properties:
+                    expression:
+                      description: Expression is a CEL expression that returns a string
+                        value
+                      type: string
+                    key:
+                      description: Key is the label key to set on the InFlightOperation
+                      type: string
+                  required:
+                  - expression
+                  - key
+                  type: object
                 type: array
               labels:
                 additionalProperties:

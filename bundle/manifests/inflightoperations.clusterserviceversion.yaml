@@ -4,10 +4,10 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    createdAt: "2026-03-14T05:42:01Z"
+    createdAt: "2026-03-24T19:56:59Z"
     operators.operatorframework.io/builder: operator-sdk-v1.42.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
-  name: inflightoperations.v99.0.0
+  name: inflightoperations.v0.0.2
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -114,8 +114,8 @@ spec:
                 env:
                 - name: OPERATOR_VERSION
                   value: v99.0.0
-                image: quay.io/ifo-operator/controller:v99.0.0
-                imagePullPolicy: Always
+                image: quay.io/ifo-operator/controller:v0.0.2
+                imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -204,4 +204,4 @@ spec:
   provider:
     name: Provider Name
     url: https://your.domain
-  version: 99.0.0
+  version: 0.0.2
