@@ -33,7 +33,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	api "github.com/ifo-operator/inflightoperations/api/v1alpha1"
+	api "github.com/openshift-virtualization/inflightoperations/api/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
 

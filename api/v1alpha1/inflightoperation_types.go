@@ -19,8 +19,8 @@ package v1alpha1
 import (
 	"time"
 
-	libcnd "github.com/ifo-operator/inflightoperations/lib/condition"
-	"github.com/ifo-operator/inflightoperations/settings"
+	libcnd "github.com/openshift-virtualization/inflightoperations/lib/condition"
+	"github.com/openshift-virtualization/inflightoperations/settings"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )

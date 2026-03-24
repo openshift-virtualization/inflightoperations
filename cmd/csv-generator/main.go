@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 
 	"github.com/blang/semver/v4"
-	"github.com/ifo-operator/inflightoperations/settings"
+	"github.com/openshift-virtualization/inflightoperations/settings"
 	"github.com/operator-framework/api/pkg/lib/version"
 	csvv1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/spf13/cobra"

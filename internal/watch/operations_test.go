@@ -3,7 +3,7 @@ package watch
 import (
 	"testing"
 
-	api "github.com/ifo-operator/inflightoperations/api/v1alpha1"
+	api "github.com/openshift-virtualization/inflightoperations/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"

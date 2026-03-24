@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/google/cel-go/cel"
-	"github.com/ifo-operator/inflightoperations/internal/metrics"
+	"github.com/openshift-virtualization/inflightoperations/internal/metrics"
 )
 
 // ProgramCache caches compiled CEL programs for performance

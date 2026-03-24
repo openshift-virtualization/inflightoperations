@@ -19,8 +19,8 @@ package watch
 import (
 	"sync"
 
-	api "github.com/ifo-operator/inflightoperations/api/v1alpha1"
-	"github.com/ifo-operator/inflightoperations/internal/metrics"
+	api "github.com/openshift-virtualization/inflightoperations/api/v1alpha1"
+	"github.com/openshift-virtualization/inflightoperations/internal/metrics"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 

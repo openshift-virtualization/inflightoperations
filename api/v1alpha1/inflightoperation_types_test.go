@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ifo-operator/inflightoperations/settings"
+	"github.com/openshift-virtualization/inflightoperations/settings"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )

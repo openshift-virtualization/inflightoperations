@@ -28,7 +28,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/ifo-operator/inflightoperations/test/utils"
+	"github.com/openshift-virtualization/inflightoperations/test/utils"
 )
 
 var (

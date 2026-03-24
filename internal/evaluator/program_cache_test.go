@@ -4,7 +4,7 @@ import (
 	"sync"
 	"testing"
 
-	api "github.com/ifo-operator/inflightoperations/api/v1alpha1"
+	api "github.com/openshift-virtualization/inflightoperations/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 

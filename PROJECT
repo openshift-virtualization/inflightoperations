@@ -7,7 +7,7 @@ domain: ifo.kubevirt.io
 layout:
 - go.kubebuilder.io/v4
 projectName: inflightoperations
-repo: github.com/ifo-operator/inflightoperations
+repo: github.com/openshift-virtualization/inflightoperations
 resources:
 - api:
     crdVersion: v1
@@ -15,7 +15,7 @@ resources:
   controller: true
   domain: ifo.kubevirt.io
   kind: InFlightOperation
-  path: github.com/ifo-operator/inflightoperations/api/v1alpha1
+  path: github.com/openshift-virtualization/inflightoperations/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -23,6 +23,6 @@ resources:
   controller: true
   domain: ifo.kubevirt.io
   kind: OperationRuleSet
-  path: github.com/ifo-operator/inflightoperations/api/v1alpha1
+  path: github.com/openshift-virtualization/inflightoperations/api/v1alpha1
   version: v1alpha1
 version: "3"

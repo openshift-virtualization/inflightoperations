@@ -3,8 +3,8 @@ package evaluator
 import (
 	"fmt"
 
-	api "github.com/ifo-operator/inflightoperations/api/v1alpha1"
-	liberr "github.com/ifo-operator/inflightoperations/lib/error"
+	api "github.com/openshift-virtualization/inflightoperations/api/v1alpha1"
+	liberr "github.com/openshift-virtualization/inflightoperations/lib/error"
 )
 
 type RuleSetResult struct {

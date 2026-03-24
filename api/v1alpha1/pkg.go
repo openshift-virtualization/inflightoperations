@@ -1,7 +1,7 @@
 package v1alpha1
 
 import (
-	libcnd "github.com/ifo-operator/inflightoperations/lib/condition"
+	libcnd "github.com/openshift-virtualization/inflightoperations/lib/condition"
 )
 
 // Labels

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ifo-operator/inflightoperations/internal/metrics"
-	"github.com/ifo-operator/inflightoperations/settings"
+	"github.com/openshift-virtualization/inflightoperations/internal/metrics"
+	"github.com/openshift-virtualization/inflightoperations/settings"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
 )

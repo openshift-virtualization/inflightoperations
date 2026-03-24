@@ -22,8 +22,8 @@ import (
 	"os"
 
 	"github.com/go-logr/logr"
-	"github.com/ifo-operator/inflightoperations/lib/logging"
-	"github.com/ifo-operator/inflightoperations/settings"
+	"github.com/openshift-virtualization/inflightoperations/lib/logging"
+	"github.com/openshift-virtualization/inflightoperations/settings"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -42,8 +42,8 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	api "github.com/ifo-operator/inflightoperations/api/v1alpha1"
-	"github.com/ifo-operator/inflightoperations/internal/controller"
+	api "github.com/openshift-virtualization/inflightoperations/api/v1alpha1"
+	"github.com/openshift-virtualization/inflightoperations/internal/controller"
 	// +kubebuilder:scaffold:imports
 )
 

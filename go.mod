@@ -1,4 +1,4 @@
-module github.com/ifo-operator/inflightoperations
+module github.com/openshift-virtualization/inflightoperations
 
 go 1.25.7
 

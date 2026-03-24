@@ -20,12 +20,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ifo-operator/inflightoperations/internal/evaluator"
-	"github.com/ifo-operator/inflightoperations/internal/watch"
-	libcnd "github.com/ifo-operator/inflightoperations/lib/condition"
-	liberr "github.com/ifo-operator/inflightoperations/lib/error"
-	"github.com/ifo-operator/inflightoperations/lib/logging"
-	"github.com/ifo-operator/inflightoperations/settings"
+	"github.com/openshift-virtualization/inflightoperations/internal/evaluator"
+	"github.com/openshift-virtualization/inflightoperations/internal/watch"
+	libcnd "github.com/openshift-virtualization/inflightoperations/lib/condition"
+	liberr "github.com/openshift-virtualization/inflightoperations/lib/error"
+	"github.com/openshift-virtualization/inflightoperations/lib/logging"
+	"github.com/openshift-virtualization/inflightoperations/settings"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/storage/names"
@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	api "github.com/ifo-operator/inflightoperations/api/v1alpha1"
+	api "github.com/openshift-virtualization/inflightoperations/api/v1alpha1"
 )
 
 var Settings = &settings.Settings
