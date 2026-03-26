@@ -62,31 +62,6 @@ The `rules/` directory includes ready-to-use rulesets for common resource types:
 | installplan-rules | `operators.coreos.com/v1alpha1/installplans` | olm | Planning, Installing, RequiresApproval |
 | subscription-rules | `operators.coreos.com/v1alpha1/subscriptions` | olm | Unpacking, InstallPlanPending |
 
-## Installation
-
-### Prerequisites
-
-- A Kubernetes cluster (v1.25+)
-- `kubectl` configured to access the cluster
-- For development: Go 1.25+, `podman` or `docker`
-
-### Deploy to a Cluster
-
-```bash
-# Install CRDs
-make install
-
-# Deploy the controller
-make deploy IMG=quay.io/ifo-operator/controller:<tag>
-```
-
-### Remove from a Cluster
-
-```bash
-make undeploy
-make uninstall
-```
-
 ## Configuration
 
 The operator is configured via environment variables on the controller deployment:
