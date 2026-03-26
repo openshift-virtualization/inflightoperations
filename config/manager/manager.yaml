@@ -73,6 +73,7 @@ spec:
             memory: 256Mi
         volumeMounts: []
         imagePullPolicy: IfNotPresent
+        terminationMessagePolicy: FallbackToLogsOnError
         env:
           - name: OPERATOR_VERSION
             value: v99.0.0
