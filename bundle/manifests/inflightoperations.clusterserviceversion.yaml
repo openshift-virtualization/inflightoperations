@@ -4,10 +4,10 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    createdAt: "2026-03-24T19:56:59Z"
+    createdAt: "2026-03-26T22:37:29Z"
     operators.operatorframework.io/builder: operator-sdk-v1.42.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
-  name: inflightoperations.v0.0.2
+  name: inflightoperations.v0.0.3
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -114,7 +114,7 @@ spec:
                 env:
                 - name: OPERATOR_VERSION
                   value: v99.0.0
-                image: quay.io/ifo-operator/controller:v0.0.2
+                image: quay.io/ifo-operator/controller:v0.0.3
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -132,16 +132,17 @@ spec:
                 resources:
                   limits:
                     cpu: 500m
-                    memory: 128Mi
+                    memory: 512Mi
                   requests:
                     cpu: 10m
-                    memory: 64Mi
+                    memory: 256Mi
                 securityContext:
                   allowPrivilegeEscalation: false
                   capabilities:
                     drop:
                     - ALL
                   readOnlyRootFilesystem: true
+                terminationMessagePolicy: FallbackToLogsOnError
               securityContext:
                 runAsNonRoot: true
                 seccompProfile:
@@ -204,4 +205,4 @@ spec:
   provider:
     name: Provider Name
     url: https://your.domain
-  version: 0.0.2
+  version: 0.0.3
