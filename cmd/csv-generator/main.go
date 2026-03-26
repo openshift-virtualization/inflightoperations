@@ -139,7 +139,6 @@ func modifyManagerDeployment(csv *csvv1.ClusterServiceVersion) (err error) {
 	container := templateSpec.Containers[0]
 	container.Image = flags.operatorImage
 	container.ImagePullPolicy = v1.PullPolicy(flags.pullPolicy)
-	container.Args = append(container.Args, "--olm-deployment")
 	for i := range container.Env {
 		envVar := &container.Env[i]
 		switch envVar.Name {
