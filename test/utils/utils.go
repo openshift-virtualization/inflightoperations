@@ -39,6 +39,25 @@ func warnError(err error) {
 	_, _ = fmt.Fprintf(GinkgoWriter, "warning: %v\n", err)
 }
 
+// ContainerTool returns the container tool to use for building images.
+// It checks the CONTAINER_TOOL env var, then probes for podman, and falls back to docker.
+func ContainerTool() string {
+	if v, ok := os.LookupEnv("CONTAINER_TOOL"); ok {
+		return v
+	}
+	if _, err := exec.LookPath("podman"); err == nil {
+		return "podman"
+	}
+	return "docker"
+}
+
+// BuildImage builds the container image using the detected container tool.
+func BuildImage(image string) error {
+	cmd := exec.Command(ContainerTool(), "build", "-t", image, ".")
+	_, err := Run(cmd)
+	return err
+}
+
 // Run executes the provided command within this context
 func Run(cmd *exec.Cmd) (string, error) {
 	dir, _ := GetProjectDir()
@@ -155,7 +174,7 @@ func LoadImageToKindClusterWithName(name string) error {
 	archivePath := fmt.Sprintf("/tmp/kind-image-%d.tar", os.Getpid())
 	defer os.Remove(archivePath)
 
-	cmd = exec.Command("podman", "save", name, "-o", archivePath)
+	cmd = exec.Command(ContainerTool(), "save", name, "-o", archivePath)
 	if _, err := Run(cmd); err != nil {
 		return fmt.Errorf("failed to save image archive: %w", err)
 	}

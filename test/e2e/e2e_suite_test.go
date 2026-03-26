@@ -22,7 +22,6 @@ package e2e
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -32,11 +31,9 @@ import (
 )
 
 var (
-	// managerImage is the manager image to be built and loaded for testing.
-	// This must match the Makefile default (IMG) to avoid dirtying
-	// config/manager/kustomization.yaml when `make deploy` runs
-	// `kustomize edit set image`.
-	managerImage = "quay.io/ifo-operator/controller:v99.0.0"
+	// managerImage is the test controller image. This must match the image
+	// override in test/e2e/kustomize/kustomization.yaml.
+	managerImage = "localhost/inflightoperations:e2e"
 	// shouldCleanupCertManager tracks whether CertManager was installed by this suite.
 	shouldCleanupCertManager = false
 )
@@ -53,8 +50,7 @@ func TestE2E(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	By("building the manager image")
-	cmd := exec.Command("make", "build-controller-image", fmt.Sprintf("IMG=%s", managerImage))
-	_, err := utils.Run(cmd)
+	err := utils.BuildImage(managerImage)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to build the manager image")
 
 	By("loading the manager image on Kind")
