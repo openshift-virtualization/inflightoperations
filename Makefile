@@ -1,8 +1,7 @@
-VERSION ?= 99.0.0
-# Image URL to use all building/pushing image targets
-IMG ?= quay.io/ifo-operator/controller:v$(VERSION)
-BUNDLE_IMG ?= quay.io/ifo-operator/controller-bundle:v$(VERSION)
-INDEX_IMG ?= quay.io/ifo-operator/controller-index:v$(VERSION)
+IMAGE_REGISTRY ?= quay.io/ifo-operator
+IMAGE_TAG ?=latest
+CONTROLLER_IMAGE ?= $(IMAGE_REGISTRY)/controller:$(IMAGE_TAG)
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -10,11 +9,14 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-# CONTAINER_TOOL defines the container tool to be used for building images.
-# Be aware that the target commands are only tested with Docker which is
-# scaffolded by default. However, you might want to replace it to use other
-# tools. (i.e. podman)
-CONTAINER_TOOL ?= podman
+# Container tool - auto-detects docker or podman, or can be overridden
+# Usage: make docker-build
+#        CONTAINER_TOOL=podman make docker-build
+CONTAINER_TOOL ?= $(shell command -v docker 2>/dev/null || command -v podman 2>/dev/null)
+
+ifeq ($(CONTAINER_TOOL),)
+$(error Neither docker nor podman found in PATH. Please install one of them.)
+endif
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
@@ -104,7 +106,8 @@ lint-config: golangci-lint ## Verify golangci-lint linter configuration
 
 .PHONY: build
 build: manifests generate fmt vet ## Build manager binary.
-	go build -o bin/manager ./cmd/manager
+	go build -o bin/manager ./cmd/manager/main.go
+	go build -o bin/csv-generator ./cmd/csv-generator/main.go
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
@@ -113,37 +116,32 @@ run: manifests generate fmt vet ## Run a controller from your host.
 # If you wish to build the manager image targeting other platforms you can use the --platform flag.
 # (i.e. docker build --platform linux/arm64). However, you must enable docker buildKit for it.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
-.PHONY: build-controller-image
-build-controller-image: ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build -t ${IMG} .
+.PHONY: docker-build
+docker-build: ## Build docker image with the manager.
+	$(CONTAINER_TOOL) build -t $(IMAGE_NAME) .
 
-.PHONY: push-controller-image
-push-controller-image: build-controller-image ## Push docker image with the manager.
-	$(CONTAINER_TOOL) push ${IMG}
+.PHONY: docker-push
+docker-push: build-controller-image ## Push docker image with the manager.
+	$(CONTAINER_TOOL) push $(IMAGE_NAME)
 
 .PHONY: bundle
 bundle: kustomize
 	cd config/manager && "$(KUSTOMIZE)" edit set image controller=${IMG}
 	"$(KUSTOMIZE)" build config/default | operator-sdk generate bundle --version $(VERSION) --overwrite
 
-.PHONY: build-bundle-image
-build-bundle-image: bundle
-	$(CONTAINER_TOOL) build -f bundle.Dockerfile -t ${BUNDLE_IMG} .
+.PHONY: build-push-multi-arch
+build-push-multi-arch: ## Build and push multiarch image.
+	IMAGE_NAME=$(CONTROLLER_IMAGE) DOCKER_FILE=Dockerfile ./hack/build-push-multi-arch-images.sh
 
-.PHONY: push-bundle-image
-push-bundle-image: build-bundle-image
-	$(CONTAINER_TOOL) push ${BUNDLE_IMG}
+##@ Deployment
 
-.PHONY: build-index
-build-index: push-bundle-image
-	opm index add --bundles ${BUNDLE_IMG} --tag ${INDEX_IMG} --build-tool podman
+.PHONY: deploy
+deploy: ## Deploy controller to the cluster.
+	kubectl apply -k config/default
 
-.PHONY: push-index
-push-index: build-index
-	$(CONTAINER_TOOL) push ${INDEX_IMG}
-
-.PHONY: push-all
-push-all: push-controller-image push-index
+.PHONY: undeploy
+undeploy: ## Undeploy controller from the cluster
+	kubectl delete -k config/default
 
 ##@ Dependencies
 

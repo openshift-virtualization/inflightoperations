@@ -17,7 +17,20 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Run linter
+      - name: Run go fmt
+        run: |
+          make fmt
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Code is not formatted. Please run 'make fmt' locally and commit the changes."
+            git diff
+            exit 1
+          fi
+
+      - name: Run go vet
+        run: make vet
+
+      - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:
           version: v2.7.2
+
