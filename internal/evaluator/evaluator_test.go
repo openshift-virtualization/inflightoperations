@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-func makeObject(data map[string]interface{}) *unstructured.Unstructured {
+func makeObject(data map[string]any) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: data,
 	}
@@ -30,8 +30,8 @@ func TestEvaluate(t *testing.T) {
 		},
 		{
 			name: "simple string equality - match",
-			object: makeObject(map[string]interface{}{
-				"status": map[string]interface{}{
+			object: makeObject(map[string]any{
+				"status": map[string]any{
 					"phase": "Running",
 				},
 			}),
@@ -41,8 +41,8 @@ func TestEvaluate(t *testing.T) {
 		},
 		{
 			name: "simple string equality - no match",
-			object: makeObject(map[string]interface{}{
-				"status": map[string]interface{}{
+			object: makeObject(map[string]any{
+				"status": map[string]any{
 					"phase": "Pending",
 				},
 			}),
@@ -52,8 +52,8 @@ func TestEvaluate(t *testing.T) {
 		},
 		{
 			name: "nested field access",
-			object: makeObject(map[string]interface{}{
-				"status": map[string]interface{}{
+			object: makeObject(map[string]any{
+				"status": map[string]any{
 					"printableStatus": "Migrating",
 				},
 			}),
@@ -63,8 +63,8 @@ func TestEvaluate(t *testing.T) {
 		},
 		{
 			name: "numeric comparison",
-			object: makeObject(map[string]interface{}{
-				"spec": map[string]interface{}{
+			object: makeObject(map[string]any{
+				"spec": map[string]any{
 					"replicas": 3,
 				},
 			}),
@@ -74,8 +74,8 @@ func TestEvaluate(t *testing.T) {
 		},
 		{
 			name: "logical AND",
-			object: makeObject(map[string]interface{}{
-				"status": map[string]interface{}{
+			object: makeObject(map[string]any{
+				"status": map[string]any{
 					"phase": "Running",
 					"ready": true,
 				},
@@ -86,8 +86,8 @@ func TestEvaluate(t *testing.T) {
 		},
 		{
 			name: "logical OR",
-			object: makeObject(map[string]interface{}{
-				"status": map[string]interface{}{
+			object: makeObject(map[string]any{
+				"status": map[string]any{
 					"phase": "Pending",
 				},
 			}),
@@ -97,8 +97,8 @@ func TestEvaluate(t *testing.T) {
 		},
 		{
 			name: "invalid expression syntax",
-			object: makeObject(map[string]interface{}{
-				"status": map[string]interface{}{
+			object: makeObject(map[string]any{
+				"status": map[string]any{
 					"phase": "Running",
 				},
 			}),
@@ -108,8 +108,8 @@ func TestEvaluate(t *testing.T) {
 		},
 		{
 			name: "non-boolean expression",
-			object: makeObject(map[string]interface{}{
-				"status": map[string]interface{}{
+			object: makeObject(map[string]any{
+				"status": map[string]any{
 					"phase": "Running",
 				},
 			}),
@@ -148,8 +148,8 @@ func TestEvaluateRules(t *testing.T) {
 	}{
 		{
 			name: "single matching rule",
-			object: makeObject(map[string]interface{}{
-				"status": map[string]interface{}{
+			object: makeObject(map[string]any{
+				"status": map[string]any{
 					"printableStatus": "Migrating",
 				},
 			}),
@@ -162,8 +162,8 @@ func TestEvaluateRules(t *testing.T) {
 		},
 		{
 			name: "multiple matching rules",
-			object: makeObject(map[string]interface{}{
-				"status": map[string]interface{}{
+			object: makeObject(map[string]any{
+				"status": map[string]any{
 					"phase": "Running",
 					"ready": true,
 				},
@@ -178,8 +178,8 @@ func TestEvaluateRules(t *testing.T) {
 		},
 		{
 			name: "no matching rules",
-			object: makeObject(map[string]interface{}{
-				"status": map[string]interface{}{
+			object: makeObject(map[string]any{
+				"status": map[string]any{
 					"printableStatus": "Running",
 				},
 			}),
@@ -192,8 +192,8 @@ func TestEvaluateRules(t *testing.T) {
 		},
 		{
 			name: "empty rules list",
-			object: makeObject(map[string]interface{}{
-				"status": map[string]interface{}{
+			object: makeObject(map[string]any{
+				"status": map[string]any{
 					"phase": "Running",
 				},
 			}),
@@ -241,8 +241,8 @@ func TestProgramCaching(t *testing.T) {
 		t.Fatalf("NewEvaluator() failed: %v", err)
 	}
 
-	obj := makeObject(map[string]interface{}{
-		"status": map[string]interface{}{
+	obj := makeObject(map[string]any{
+		"status": map[string]any{
 			"phase": "Running",
 		},
 	})
@@ -251,7 +251,7 @@ func TestProgramCaching(t *testing.T) {
 	rule := api.Rule{Expression: expression}
 
 	// Evaluate the same expression multiple times
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		result, err := eval.Evaluate(obj, &rule)
 		if err != nil {
 			t.Fatalf("Evaluate() iteration %d failed: %v", i, err)

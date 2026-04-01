@@ -80,7 +80,7 @@ func (r *OperationRuleSetReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			r.Log.Info("OperationRuleSet not found, ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
-		r.Log.Error(err, "Failed to get OperationRuleSet", "ruleset", req.NamespacedName.Name)
+		r.Log.Error(err, "Failed to get OperationRuleSet", "ruleset", req.Name)
 		return ctrl.Result{}, err
 	}
 
@@ -108,7 +108,7 @@ func (r *OperationRuleSetReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	r.Log.Info("Begin validating OperationRuleSet", "ruleset", operationRule.Name)
 	err = r.Validate(ctx, operationRule)
 	if err != nil {
-		return
+		return result, err
 	}
 	r.Log.Info("Done validating OperationRuleSet", "ruleset", operationRule.Name)
 
@@ -143,9 +143,9 @@ func (r *OperationRuleSetReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	if err != nil {
 		err = liberr.Wrap(err)
 		r.Log.Error(err, "Failed to update OperationRuleSet status", "ruleset", operationRule.Name)
-		return
+		return result, err
 	}
-	return
+	return result, err
 }
 
 func (r *OperationRuleSetReconciler) Validate(ctx context.Context, rule *api.OperationRuleSet) error {

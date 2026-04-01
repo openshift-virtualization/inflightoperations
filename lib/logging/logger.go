@@ -47,13 +47,13 @@ type Logger struct {
 }
 
 type LevelLogger interface {
-	Info(msg string, kv ...interface{})
+	Info(msg string, kv ...any)
 	Enabled() bool
-	Error(err error, msg string, kv ...interface{})
-	WithValues(kv ...interface{}) LevelLogger
+	Error(err error, msg string, kv ...any)
+	WithValues(kv ...any) LevelLogger
 	WithName(name string) LevelLogger
 	V(level int) LevelLogger
-	Trace(err error, kvpair ...interface{})
+	Trace(err error, kvpair ...any)
 }
 
 type levelLoggerImpl struct {
@@ -61,7 +61,7 @@ type levelLoggerImpl struct {
 	level int
 }
 
-func (l *levelLoggerImpl) Info(msg string, kv ...interface{}) {
+func (l *levelLoggerImpl) Info(msg string, kv ...any) {
 	if Settings.allowed(l.level) {
 		l.real.Info(msg, kv...)
 	}
@@ -71,7 +71,7 @@ func (l *levelLoggerImpl) Enabled() bool {
 	return l.real.Enabled()
 }
 
-func (l *levelLoggerImpl) Error(err error, msg string, kv ...interface{}) {
+func (l *levelLoggerImpl) Error(err error, msg string, kv ...any) {
 	l.real.Error(err, msg, kv...)
 }
 
@@ -82,7 +82,7 @@ func (l *levelLoggerImpl) V(level int) LevelLogger {
 	}
 }
 
-func (l *levelLoggerImpl) WithValues(kv ...interface{}) LevelLogger {
+func (l *levelLoggerImpl) WithValues(kv ...any) LevelLogger {
 	return &levelLoggerImpl{
 		real:  l.real.WithValues(kv...),
 		level: l.level,
@@ -96,18 +96,18 @@ func (l *levelLoggerImpl) WithName(name string) LevelLogger {
 	}
 }
 
-func (l *levelLoggerImpl) Trace(err error, kvpair ...interface{}) {
+func (l *levelLoggerImpl) Trace(err error, kvpair ...any) {
 	l.real.Error(err, None, kvpair...)
 }
 
 // Logs at info.
-func (l *Logger) Info(level int, message string, kvpair ...interface{}) {
+func (l *Logger) Info(level int, message string, kvpair ...any) {
 	if Settings.allowed(l.level) {
 		l.Real.Info(message, kvpair...)
 	}
 }
 
-func WithName(name string, kvpair ...interface{}) LevelLogger {
+func WithName(name string, kvpair ...any) LevelLogger {
 	l := &Logger{
 		Real: Factory.New(),
 		name: name,
@@ -122,7 +122,7 @@ func WithName(name string, kvpair ...interface{}) LevelLogger {
 }
 
 // Logs an error.
-func (l *Logger) Error(err error, message string, kvpair ...interface{}) {
+func (l *Logger) Error(err error, message string, kvpair ...any) {
 	if err == nil {
 		return
 	}
@@ -160,7 +160,7 @@ func (l *Logger) Error(err error, message string, kvpair ...interface{}) {
 }
 
 // Logs an error without a description.
-func (l *Logger) Trace(err error, kvpair ...interface{}) {
+func (l *Logger) Trace(err error, kvpair ...any) {
 	l.Error(err, None, kvpair...)
 }
 

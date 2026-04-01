@@ -11,10 +11,10 @@ import (
 
 func makeTestSubject(name, namespace, kind, apiVersion string, uid types.UID) *api.Subject {
 	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": apiVersion,
 			"kind":       kind,
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      name,
 				"namespace": namespace,
 				"uid":       string(uid),

@@ -180,7 +180,7 @@ func TestRuleCacheConcurrency(t *testing.T) {
 	var wg sync.WaitGroup
 
 	// Simulate concurrent writes
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
@@ -202,17 +202,15 @@ func TestRuleCacheConcurrency(t *testing.T) {
 	}
 
 	// Simulate concurrent reads
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 100 {
+		wg.Go(func() {
 			gvr := schema.GroupVersionResource{
 				Group:    "test.io",
 				Version:  "v1",
 				Resource: "testresources",
 			}
 			_ = cache.List(gvr)
-		}()
+		})
 	}
 
 	wg.Wait()

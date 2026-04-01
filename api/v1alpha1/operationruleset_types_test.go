@@ -9,8 +9,8 @@ import (
 func TestAppliesTo(t *testing.T) {
 	makeSubjectInNS := func(ns string) *Subject {
 		return &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"metadata": map[string]interface{}{
+			Object: map[string]any{
+				"metadata": map[string]any{
 					"namespace": ns,
 				},
 			},

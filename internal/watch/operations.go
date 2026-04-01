@@ -3,6 +3,7 @@ package watch
 import (
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 
 	api "github.com/openshift-virtualization/inflightoperations/api/v1alpha1"
@@ -107,15 +108,9 @@ func (r *Operations) subjectLabels(subject *api.Subject) map[string]string {
 func (r *Operations) operationLabels(subject *api.Subject, operation string, ruleset *api.OperationRuleSet, dynamicLabels map[string]string) map[string]string {
 	// Merge order: dynamic labels (lowest), static labels, built-in labels (highest)
 	labels := make(map[string]string)
-	for k, v := range dynamicLabels {
-		labels[k] = v
-	}
-	for k, v := range ruleset.Spec.Labels {
-		labels[k] = v
-	}
-	for k, v := range r.subjectLabels(subject) {
-		labels[k] = v
-	}
+	maps.Copy(labels, dynamicLabels)
+	maps.Copy(labels, ruleset.Spec.Labels)
+	maps.Copy(labels, r.subjectLabels(subject))
 	labels[api.LabelOperation] = operation
 	labels[api.LabelRuleSet] = ruleset.Name
 	labels[api.LabelComponent] = ruleset.Spec.Component

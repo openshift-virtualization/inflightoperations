@@ -31,7 +31,7 @@ type Watcher struct {
 	operations      *Operations
 }
 
-func NewWatcher(client client.Client, dynamicClient dynamic.Interface, rules *RuleCache, evaluator evaluator.Evaluator, log logging.LevelLogger) *Watcher {
+func NewWatcher(cl client.Client, dynamicClient dynamic.Interface, rules *RuleCache, eval evaluator.Evaluator, log logging.LevelLogger) *Watcher {
 	factory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(
 		dynamicClient,
 		Settings.K8SInformerResync,
@@ -39,15 +39,15 @@ func NewWatcher(client client.Client, dynamicClient dynamic.Interface, rules *Ru
 		nil,
 	)
 	return &Watcher{
-		client:          client,
+		client:          cl,
 		dynamicClient:   dynamicClient,
 		informerFactory: factory,
 		log:             log,
 		cache:           NewWatchCache(),
 		rules:           rules,
-		evaluator:       evaluator,
+		evaluator:       eval,
 		operations: &Operations{
-			client: client,
+			client: cl,
 			log:    log,
 		},
 	}
@@ -83,10 +83,7 @@ func (r *Watcher) Register(gvr schema.GroupVersionResource) (err error) {
 		return
 	}
 	r.log.V(4).Info("Registering watch.", "gvr", gvr.String())
-	informer, err := r.makeInformer(gvr)
-	if err != nil {
-		return
-	}
+	informer := r.makeInformer(gvr)
 	err = r.addHandlers(informer, gvr)
 	if err != nil {
 		return
@@ -130,22 +127,21 @@ func (r *Watcher) addHandlers(informer cache.SharedIndexInformer, gvr schema.Gro
 	return
 }
 
-func (r *Watcher) makeInformer(gvr schema.GroupVersionResource) (informer cache.SharedIndexInformer, err error) {
-	informer = r.informerFactory.ForResource(gvr).Informer()
-	return
+func (r *Watcher) makeInformer(gvr schema.GroupVersionResource) cache.SharedIndexInformer {
+	return r.informerFactory.ForResource(gvr).Informer()
 }
 
 func (r *Watcher) handle(obj any, gvr schema.GroupVersionResource) (err error) {
 	subject, ok := obj.(*api.Subject)
 	if !ok {
-		return
+		return err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), Settings.K8SAPITimeout)
 	defer cancel()
 	rulesets := r.rules.List(gvr)
 	if len(rulesets) == 0 {
 		r.log.V(4).Info("No rulesets for GVR", "gvr", gvr.String())
-		return
+		return err
 	}
 
 	detected := make(map[string]bool)
@@ -171,7 +167,7 @@ func (r *Watcher) handle(obj any, gvr schema.GroupVersionResource) (err error) {
 	list, err := r.operations.List(ctx, subject)
 	if err != nil {
 		r.log.Error(err, "Failed to list operations", "subject", subject.GetName(), "namespace", subject.GetNamespace())
-		return
+		return err
 	}
 	for _, ifo := range list.Items {
 		if !ifo.PastDebounceThreshold() {
@@ -200,7 +196,7 @@ func (r *Watcher) handle(obj any, gvr schema.GroupVersionResource) (err error) {
 			}
 		}
 	}
-	return
+	return err
 }
 
 func (r *Watcher) handleDelete(obj any, _ schema.GroupVersionResource) (err error) {

@@ -172,7 +172,7 @@ func LoadImageToKindClusterWithName(name string) error {
 
 	// Fallback: save the image to a tar archive and load it
 	archivePath := fmt.Sprintf("/tmp/kind-image-%d.tar", os.Getpid())
-	defer os.Remove(archivePath)
+	defer func() { _ = os.Remove(archivePath) }()
 
 	cmd = exec.Command(ContainerTool(), "save", name, "-o", archivePath)
 	if _, err := Run(cmd); err != nil {

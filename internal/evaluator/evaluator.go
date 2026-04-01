@@ -59,7 +59,7 @@ func (r *celEvaluator) Evaluate(subject *api.Subject, rule *api.Rule) (value boo
 		return
 	}
 
-	vars := map[string]interface{}{
+	vars := map[string]any{
 		"object": subject.Object,
 	}
 
@@ -86,7 +86,7 @@ func (r *celEvaluator) EvaluateLabelExpression(subject *api.Subject, expression 
 		return
 	}
 
-	vars := map[string]interface{}{
+	vars := map[string]any{
 		"object": subject.Object,
 	}
 

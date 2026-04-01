@@ -11,8 +11,8 @@ import (
 
 func makeSubject(name, namespace string, generation int64) *Subject {
 	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"metadata": map[string]interface{}{
+		Object: map[string]any{
+			"metadata": map[string]any{
 				"name":       name,
 				"namespace":  namespace,
 				"generation": generation,

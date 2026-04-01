@@ -60,10 +60,13 @@ var (
 )
 
 func init() {
-	command.Flags().StringVar(&flags.file, "file", "bundle/manifests/inflightoperations.clusterserviceversion.yaml", "Location of the CSV yaml to modify")
+	command.Flags().StringVar(&flags.file, "file",
+		"bundle/manifests/inflightoperations.clusterserviceversion.yaml",
+		"Location of the CSV yaml to modify")
 	command.Flags().StringVar(&flags.crds, "crds", "config/crd/bases", "Location of the CRD files")
 	command.Flags().StringVar(&flags.csvVersion, "csv-version", "", "Version of csv manifest (required)")
-	command.Flags().StringVar(&flags.namespace, "namespace", "", "Namespace in which ssp operator will be deployed (required)")
+	command.Flags().StringVar(&flags.namespace, "namespace", "",
+		"Namespace in which the operator will be deployed (required)")
 	command.Flags().StringVar(&flags.operatorImage, "operator-image", "", "Link to operator image (required)")
 	command.Flags().StringVar(&flags.operatorVersion, "operator-version", "", "Operator version (required)")
 	command.Flags().StringVar(&flags.pullPolicy, "pull-policy", "IfNotPresent", "Image pull policy")
@@ -180,9 +183,9 @@ func marshalCSV(obj any, writer io.Writer) (err error) {
 	}
 	err = writeDocument(&r, writer)
 	if err != nil {
-		return
+		return err
 	}
-	return
+	return err
 }
 
 func dumpCRDs(path string) (err error) {

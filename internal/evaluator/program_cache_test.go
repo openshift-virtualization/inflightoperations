@@ -27,7 +27,7 @@ func TestGetOrCompileCacheHit(t *testing.T) {
 	}
 
 	// Same program instance should be returned from cache
-	if &prog1 == nil || &prog2 == nil {
+	if prog1 == nil || prog2 == nil {
 		t.Fatal("programs should not be nil")
 	}
 
@@ -66,11 +66,11 @@ func TestEvaluateLabelExpressionString(t *testing.T) {
 		t.Fatalf("failed to create evaluator: %v", err)
 	}
 	subject := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"metadata": map[string]interface{}{
+		Object: map[string]any{
+			"metadata": map[string]any{
 				"name": "my-vm",
 			},
-			"status": map[string]interface{}{
+			"status": map[string]any{
 				"phase": "Running",
 			},
 		},
@@ -91,8 +91,8 @@ func TestEvaluateLabelExpressionNonString(t *testing.T) {
 		t.Fatalf("failed to create evaluator: %v", err)
 	}
 	subject := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"spec": map[string]interface{}{
+		Object: map[string]any{
+			"spec": map[string]any{
 				"replicas": int64(3),
 			},
 		},
@@ -109,7 +109,7 @@ func TestEvaluateLabelExpressionInvalid(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create evaluator: %v", err)
 	}
-	subject := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	subject := &unstructured.Unstructured{Object: map[string]any{}}
 
 	_, err = eval.EvaluateLabelExpression(subject, "invalid!!!")
 	if err == nil {
@@ -123,8 +123,8 @@ func TestEvaluateRuleSetWithLabelExpressions(t *testing.T) {
 		t.Fatalf("failed to create evaluator: %v", err)
 	}
 	subject := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"status": map[string]interface{}{
+		Object: map[string]any{
+			"status": map[string]any{
 				"phase":    "Migrating",
 				"nodeName": "node-1",
 			},
@@ -163,8 +163,8 @@ func TestEvaluateRuleSetLabelExpressionErrorSkipped(t *testing.T) {
 		t.Fatalf("failed to create evaluator: %v", err)
 	}
 	subject := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"status": map[string]interface{}{
+		Object: map[string]any{
+			"status": map[string]any{
 				"phase": "Running",
 			},
 		},
@@ -210,7 +210,7 @@ func TestGetOrCompileConcurrency(t *testing.T) {
 	var wg sync.WaitGroup
 	errors := make(chan error, len(expressions)*10)
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		for _, expr := range expressions {
 			wg.Add(1)
 			go func(e string) {

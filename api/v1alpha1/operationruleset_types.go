@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"slices"
+
 	libcnd "github.com/openshift-virtualization/inflightoperations/lib/condition"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -141,12 +143,7 @@ func (r *OperationRuleSet) AppliesTo(subject *Subject) bool {
 	if len(r.Spec.Namespaces) == 0 {
 		return true
 	}
-	for _, ns := range r.Spec.Namespaces {
-		if ns == subject.GetNamespace() {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(r.Spec.Namespaces, subject.GetNamespace())
 }
 
 func (r *OperationRuleSet) Key() string {
