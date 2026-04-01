@@ -1,5 +1,6 @@
 IMAGE_REGISTRY ?= quay.io/ifo-operator
-IMAGE_TAG ?=latest
+IMAGE_TAG ?= latest
+VERSION = $(patsubst v%,%,$(IMAGE_TAG))
 CONTROLLER_IMAGE ?= $(IMAGE_REGISTRY)/controller:$(IMAGE_TAG)
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
@@ -107,7 +108,7 @@ lint-config: golangci-lint ## Verify golangci-lint linter configuration
 .PHONY: build
 build: manifests generate fmt vet ## Build manager binary.
 	go build -o bin/manager ./cmd/manager/main.go
-	go build -o bin/csv-generator ./cmd/csv-generator/main.go
+	go build -o bin/csv-generator ./cmd/csv-generator
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
@@ -125,9 +126,14 @@ docker-push: build-controller-image ## Push docker image with the manager.
 	$(CONTAINER_TOOL) push $(IMAGE_NAME)
 
 .PHONY: bundle
-bundle: kustomize
-	cd config/manager && "$(KUSTOMIZE)" edit set image controller=${IMG}
-	"$(KUSTOMIZE)" build config/default | operator-sdk generate bundle --version $(VERSION) --overwrite
+bundle: build ## Generate the OLM bundle.
+	bin/csv-generator \
+		--csv-version=$(VERSION) \
+		--namespace=inflightoperations-system \
+		--operator-image=$(CONTROLLER_IMAGE) \
+		--operator-version=$(IMAGE_TAG) \
+		> bundle/manifests/inflightoperations.clusterserviceversion.yaml
+	cp config/crd/bases/*.yaml bundle/manifests/
 
 .PHONY: build-push-multi-arch
 build-push-multi-arch: ## Build and push multiarch image.

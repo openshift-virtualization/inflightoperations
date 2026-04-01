@@ -112,6 +112,9 @@ type InFlightOperationStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,shortName=ifo;ifos
+// +kubebuilder:selectablefield:JSONPath=`.spec.operation`
+// +kubebuilder:selectablefield:JSONPath=`.status.phase`
+// +kubebuilder:selectablefield:JSONPath=`.spec.subject.namespace`
 // +kubebuilder:printcolumn:name="Kind",type=string,JSONPath=`.spec.subject.kind`
 // +kubebuilder:printcolumn:name="Namespace",type=string,JSONPath=`.spec.subject.namespace`
 // +kubebuilder:printcolumn:name="Subject",type=string,JSONPath=`.spec.subject.name`

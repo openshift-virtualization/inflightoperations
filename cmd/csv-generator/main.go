@@ -15,26 +15,20 @@ limitations under the License.
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 
-	"github.com/blang/semver/v4"
-	"github.com/openshift-virtualization/inflightoperations/settings"
-	"github.com/operator-framework/api/pkg/lib/version"
-	csvv1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/spf13/cobra"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/util/yaml"
-	sigsyaml "sigs.k8s.io/yaml"
+	"sigs.k8s.io/yaml"
 )
 
+const serviceAccountName = "inflightoperations-controller-manager"
+
 type generatorFlags struct {
-	file            string
 	crds            string
+	rbacDir         string
 	dumpCRDs        bool
 	csvVersion      string
 	namespace       string
@@ -48,10 +42,9 @@ var (
 	command = &cobra.Command{
 		Use:   "csv-generator",
 		Short: "csv-generator for inflightoperations",
-		Long:  `csv-generator generates deploy manifest for inflightoperations`,
+		Long:  `csv-generator generates a ClusterServiceVersion manifest for inflightoperations`,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := Generate()
-			if err != nil {
+			if err := generate(); err != nil {
 				_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
@@ -60,190 +53,290 @@ var (
 )
 
 func init() {
-	command.Flags().StringVar(&flags.file, "file",
-		"bundle/manifests/inflightoperations.clusterserviceversion.yaml",
-		"Location of the CSV yaml to modify")
-	command.Flags().StringVar(&flags.crds, "crds", "config/crd/bases", "Location of the CRD files")
-	command.Flags().StringVar(&flags.csvVersion, "csv-version", "", "Version of csv manifest (required)")
-	command.Flags().StringVar(&flags.namespace, "namespace", "",
-		"Namespace in which the operator will be deployed (required)")
-	command.Flags().StringVar(&flags.operatorImage, "operator-image", "", "Link to operator image (required)")
-	command.Flags().StringVar(&flags.operatorVersion, "operator-version", "", "Operator version (required)")
-	command.Flags().StringVar(&flags.pullPolicy, "pull-policy", "IfNotPresent", "Image pull policy")
-	command.Flags().BoolVar(&flags.dumpCRDs, "dump-crds", false, "Dump crds to stdout")
+	command.Flags().StringVar(&flags.crds, "crds",
+		"config/crd/bases", "Directory containing CRD files")
+	command.Flags().StringVar(&flags.rbacDir, "rbac-dir",
+		"config/rbac", "Directory containing RBAC files")
+	command.Flags().StringVar(&flags.csvVersion, "csv-version",
+		"", "Version of csv manifest (required)")
+	command.Flags().StringVar(&flags.namespace, "namespace",
+		"", "Namespace in which the operator will be deployed (required)")
+	command.Flags().StringVar(&flags.operatorImage, "operator-image",
+		"", "Operator container image (required)")
+	command.Flags().StringVar(&flags.operatorVersion, "operator-version",
+		"", "Operator version (required)")
+	command.Flags().StringVar(&flags.pullPolicy, "pull-policy",
+		"IfNotPresent", "Image pull policy")
+	command.Flags().BoolVar(&flags.dumpCRDs, "dump-crds",
+		false, "Dump CRDs to stdout after the CSV")
 
-	if err := command.MarkFlagRequired("csv-version"); err != nil {
-		panic(fmt.Sprintf("%v", err))
-	}
-	if err := command.MarkFlagRequired("namespace"); err != nil {
-		panic(fmt.Sprintf("%v", err))
-	}
-	if err := command.MarkFlagRequired("operator-image"); err != nil {
-		panic(fmt.Sprintf("%v", err))
-	}
-	if err := command.MarkFlagRequired("operator-version"); err != nil {
-		panic(fmt.Sprintf("%v", err))
+	for _, required := range []string{"csv-version", "namespace", "operator-image", "operator-version"} {
+		if err := command.MarkFlagRequired(required); err != nil {
+			panic(fmt.Sprintf("marking flag %s required: %v", required, err))
+		}
 	}
 }
 
 func main() {
-	err := command.Execute()
-	if err != nil {
+	if err := command.Execute(); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
 }
 
-func Generate() (err error) {
-	csvFile, err := os.Open(flags.file)
+func generate() error {
+	clusterPermRules, err := buildClusterPermissions()
 	if err != nil {
-		return
+		return fmt.Errorf("building cluster permissions: %w", err)
 	}
-	defer func() {
-		_ = csvFile.Close()
-	}()
-	decoder := yaml.NewYAMLOrJSONDecoder(csvFile, 1024)
-	csv := csvv1.ClusterServiceVersion{}
-	err = decoder.Decode(&csv)
+
+	permRules, err := readRBACRules(filepath.Join(flags.rbacDir, "leader_election_role.yaml"))
 	if err != nil {
-		return
+		return fmt.Errorf("reading leader election role: %w", err)
 	}
-	err = modifyManagerDeployment(&csv)
+
+	ownedCRDs, err := readOwnedCRDs(flags.crds)
 	if err != nil {
-		return
+		return fmt.Errorf("reading owned CRDs: %w", err)
 	}
-	err = marshalCSV(csv, os.Stdout)
-	if err != nil {
-		return
+
+	csv := buildCSV(clusterPermRules, permRules, ownedCRDs)
+
+	if err := writeDocument(csv, os.Stdout); err != nil {
+		return fmt.Errorf("writing CSV: %w", err)
 	}
+
 	if flags.dumpCRDs {
-		err = dumpCRDs(flags.crds)
+		if err := dumpCRDs(flags.crds); err != nil {
+			return fmt.Errorf("dumping CRDs: %w", err)
+		}
+	}
+	return nil
+}
+
+func buildClusterPermissions() ([]PolicyRule, error) {
+	managerRules, err := readRBACRules(filepath.Join(flags.rbacDir, "role.yaml"))
+	if err != nil {
+		return nil, fmt.Errorf("reading manager role: %w", err)
+	}
+
+	watchRules, err := readRBACRules(filepath.Join(flags.rbacDir, "watch_role.yaml"))
+	if err != nil {
+		return nil, fmt.Errorf("reading watch role: %w", err)
+	}
+
+	var rules []PolicyRule
+	rules = append(rules, managerRules...)
+	rules = append(rules, metricsAuthRules()...)
+	rules = append(rules, watchRules...)
+	return rules, nil
+}
+
+func buildCSV(
+	clusterPermRules []PolicyRule,
+	permRules []PolicyRule,
+	ownedCRDs []CRDDescription,
+) ClusterServiceVersion {
+	trueVal := true
+	falseVal := false
+	gracePeriod := int64(10)
+
+	return ClusterServiceVersion{
+		APIVersion: "operators.coreos.com/v1alpha1",
+		Kind:       "ClusterServiceVersion",
+		Metadata: CSVMetadata{
+			Name:      "inflightoperations.v" + flags.csvVersion,
+			Namespace: flags.namespace,
+			Annotations: map[string]string{
+				"alm-examples":   "[]",
+				"capabilities":   "Basic Install",
+				"containerImage": flags.operatorImage,
+				"repository":     "https://github.com/openshift-virtualization/inflightoperations",
+			},
+		},
+		Spec: CSVSpec{
+			DisplayName: "InFlightOperations",
+			Description: "Detects in-flight operations on Kubernetes resources using " +
+				"CEL expressions and creates InFlightOperation objects to track them.",
+			Keywords: []string{
+				"inflightoperations",
+				"kubevirt",
+				"virtualization",
+				"observability",
+			},
+			Links: []Link{
+				{
+					Name: "Source Code",
+					URL:  "https://github.com/openshift-virtualization/inflightoperations",
+				},
+			},
+			Maintainers: []Maintainer{
+				{
+					Name:  "OpenShift Virtualization",
+					Email: "openshift-virtualization@redhat.com",
+				},
+			},
+			Provider: Provider{
+				Name: "Red Hat",
+				URL:  "https://www.redhat.com",
+			},
+			Maturity: "alpha",
+			Version:  flags.csvVersion,
+			InstallModes: []InstallMode{
+				{Type: "OwnNamespace", Supported: false},
+				{Type: "SingleNamespace", Supported: false},
+				{Type: "MultiNamespace", Supported: false},
+				{Type: "AllNamespaces", Supported: true},
+			},
+			Install: NamedInstallStrategy{
+				Strategy: "deployment",
+				Spec: InstallStrategySpec{
+					ClusterPermissions: []StrategyDeploymentPermissions{
+						{
+							ServiceAccountName: serviceAccountName,
+							Rules:              clusterPermRules,
+						},
+					},
+					Permissions: []StrategyDeploymentPermissions{
+						{
+							ServiceAccountName: serviceAccountName,
+							Rules:              permRules,
+						},
+					},
+					Deployments: []StrategyDeploymentSpec{
+						{
+							Name: serviceAccountName,
+							Label: map[string]string{
+								"app.kubernetes.io/name":       "inflightoperations",
+								"app.kubernetes.io/managed-by": "kustomize",
+								"control-plane":                "controller-manager",
+							},
+							Spec: DeploymentSpec{
+								Replicas: 1,
+								Selector: &LabelSelector{
+									MatchLabels: map[string]string{
+										"app.kubernetes.io/name": "inflightoperations",
+										"control-plane":          "controller-manager",
+									},
+								},
+								Template: PodTemplateSpec{
+									Metadata: PodMetadata{
+										Annotations: map[string]string{
+											"kubectl.kubernetes.io/default-container": "manager",
+										},
+										Labels: map[string]string{
+											"app.kubernetes.io/name": "inflightoperations",
+											"control-plane":          "controller-manager",
+										},
+									},
+									Spec: PodSpec{
+										ServiceAccountName:            serviceAccountName,
+										TerminationGracePeriodSeconds: &gracePeriod,
+										SecurityContext: &PodSecurityContext{
+											RunAsNonRoot: &trueVal,
+											SeccompProfile: &SeccompProfile{
+												Type: "RuntimeDefault",
+											},
+										},
+										Containers: []Container{
+											{
+												Name:            "manager",
+												Image:           flags.operatorImage,
+												ImagePullPolicy: flags.pullPolicy,
+												Command:         []string{"/manager"},
+												Args: []string{
+													"--metrics-bind-address=:8443",
+													"--leader-elect",
+													"--health-probe-bind-address=:8081",
+												},
+												Env: []EnvVar{
+													{
+														Name:  "OPERATOR_VERSION",
+														Value: flags.operatorVersion,
+													},
+												},
+												Resources: ResourceRequirements{
+													Limits: map[string]string{
+														"cpu":    "500m",
+														"memory": "512Mi",
+													},
+													Requests: map[string]string{
+														"cpu":    "10m",
+														"memory": "256Mi",
+													},
+												},
+												SecurityContext: &SecurityContext{
+													AllowPrivilegeEscalation: &falseVal,
+													ReadOnlyRootFilesystem:   &trueVal,
+													Capabilities: &Capabilities{
+														Drop: []string{"ALL"},
+													},
+												},
+												LivenessProbe: &Probe{
+													HTTPGet: &HTTPGetAction{
+														Path: "/healthz",
+														Port: 8081,
+													},
+													InitialDelaySeconds: 15,
+													PeriodSeconds:       20,
+												},
+												ReadinessProbe: &Probe{
+													HTTPGet: &HTTPGetAction{
+														Path: "/readyz",
+														Port: 8081,
+													},
+													InitialDelaySeconds: 5,
+													PeriodSeconds:       10,
+												},
+												TerminationMessagePolicy: "FallbackToLogsOnError",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			CustomResourceDefinitions: CustomResourceDefinitions{
+				Owned: ownedCRDs,
+			},
+		},
+	}
+}
+
+func dumpCRDs(dir string) error {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return fmt.Errorf("reading CRD directory %s: %w", dir, err)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		data, err := os.ReadFile(filepath.Join(dir, entry.Name()))
 		if err != nil {
-			return
+			return err
 		}
-	}
-	return
-}
-
-func modifyManagerDeployment(csv *csvv1.ClusterServiceVersion) (err error) {
-	csv.Name = "inflightoperations.v" + flags.csvVersion
-	v, err := semver.New(flags.csvVersion)
-	if err != nil {
-		return
-	}
-	csv.Spec.Version = version.OperatorVersion{
-		Version: *v,
-	}
-	templateSpec := &csv.Spec.InstallStrategy.StrategySpec.DeploymentSpecs[0].Spec.Template.Spec
-	if len(templateSpec.Containers) != 1 {
-		err = fmt.Errorf("expected exactly one container")
-		return
-	}
-	container := templateSpec.Containers[0]
-	container.Image = flags.operatorImage
-	container.ImagePullPolicy = v1.PullPolicy(flags.pullPolicy)
-	for i := range container.Env {
-		envVar := &container.Env[i]
-		switch envVar.Name {
-		case settings.EnvOperatorVersion:
-			if flags.operatorVersion != "" {
-				envVar.Value = flags.operatorVersion
-			}
+		var obj map[string]any
+		if err := yaml.Unmarshal(data, &obj); err != nil {
+			return err
 		}
-	}
-	templateSpec.Containers[0] = container
-	return
-}
-
-func marshalCSV(obj any, writer io.Writer) (err error) {
-	jsonBytes, err := json.Marshal(obj)
-	if err != nil {
-		return err
-	}
-	var r unstructured.Unstructured
-	err = json.Unmarshal(jsonBytes, &r.Object)
-	if err != nil {
-		return err
-	}
-	trimMetadata(&r)
-	deployments, exists, err := unstructured.NestedSlice(r.Object, "spec", "install", "spec", "deployments")
-	if err != nil {
-		return err
-	}
-	if exists {
-		for _, d := range deployments {
-			deployment := d.(map[string]any)
-			unstructured.RemoveNestedField(deployment, "metadata", "creationTimestamp")
-			unstructured.RemoveNestedField(deployment, "spec", "template", "metadata", "creationTimestamp")
-			unstructured.RemoveNestedField(deployment, "status")
-		}
-		if err = unstructured.SetNestedSlice(r.Object, deployments, "spec", "install", "spec", "deployments"); err != nil {
+		if err := writeDocument(obj, os.Stdout); err != nil {
 			return err
 		}
 	}
-	err = writeDocument(&r, writer)
+	return nil
+}
+
+func writeDocument(obj any, writer io.Writer) error {
+	yamlBytes, err := yaml.Marshal(obj)
 	if err != nil {
 		return err
 	}
-	return err
-}
-
-func dumpCRDs(path string) (err error) {
-	files, err := os.ReadDir(path)
-	if err != nil {
-		return
-	}
-	for _, file := range files {
-		err = dumpCRD(filepath.Join(path, file.Name()))
-		if err != nil {
-			return
-		}
-	}
-	return
-}
-
-func dumpCRD(path string) (err error) {
-	var crdFile *os.File
-	crdFile, err = os.Open(path)
-	if err != nil {
-		return
-	}
-	defer func() {
-		_ = crdFile.Close()
-	}()
-	var obj unstructured.Unstructured
-	decoder := yaml.NewYAMLOrJSONDecoder(crdFile, 1024)
-	err = decoder.Decode(&obj)
-	if err != nil {
-		return
-	}
-	trimMetadata(&obj)
-	err = writeDocument(&obj, os.Stdout)
-	if err != nil {
-		return
-	}
-	return
-}
-
-func trimMetadata(obj *unstructured.Unstructured) {
-	unstructured.RemoveNestedField(obj.Object, "metadata", "creationTimestamp")
-	unstructured.RemoveNestedField(obj.Object, "template", "metadata", "creationTimestamp")
-	unstructured.RemoveNestedField(obj.Object, "spec", "template", "metadata", "creationTimestamp")
-	unstructured.RemoveNestedField(obj.Object, "status")
-}
-
-func writeDocument(obj *unstructured.Unstructured, writer io.Writer) (err error) {
-	yamlBytes, err := sigsyaml.Marshal(obj.Object)
-	if err != nil {
-		return
-	}
-	_, err = writer.Write([]byte("---\n"))
-	if err != nil {
-		return
+	if _, err := writer.Write([]byte("---\n")); err != nil {
+		return err
 	}
 	_, err = writer.Write(yamlBytes)
-	if err != nil {
-		return
-	}
-	return
+	return err
 }

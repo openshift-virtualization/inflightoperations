@@ -1,16 +1,15 @@
+---
 apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    createdAt: "2026-03-26T22:37:29Z"
-    operators.operatorframework.io/builder: operator-sdk-v1.42.0
-    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+    containerImage: quay.io/ifo-operator/controller:v0.0.3
+    repository: https://github.com/openshift-virtualization/inflightoperations
   name: inflightoperations.v0.0.3
-  namespace: placeholder
+  namespace: inflightoperations-system
 spec:
-  apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
     - kind: InFlightOperation
@@ -19,11 +18,9 @@ spec:
     - kind: OperationRuleSet
       name: operationrulesets.ifo.kubevirt.io
       version: v1alpha1
-  description: Inflightoperations description. TODO.
-  displayName: Inflightoperations
-  icon:
-  - base64data: ""
-    mediatype: ""
+  description: Detects in-flight operations on Kubernetes resources using CEL expressions
+    and creates InFlightOperation objects to track them.
+  displayName: InFlightOperations
   install:
     spec:
       clusterPermissions:
@@ -95,7 +92,6 @@ spec:
             matchLabels:
               app.kubernetes.io/name: inflightoperations
               control-plane: controller-manager
-          strategy: {}
           template:
             metadata:
               annotations:
@@ -113,7 +109,7 @@ spec:
                 - /manager
                 env:
                 - name: OPERATOR_VERSION
-                  value: v99.0.0
+                  value: v0.0.3
                 image: quay.io/ifo-operator/controller:v0.0.3
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
@@ -195,14 +191,17 @@ spec:
     type: AllNamespaces
   keywords:
   - inflightoperations
+  - kubevirt
+  - virtualization
+  - observability
   links:
-  - name: Inflightoperations
-    url: https://inflightoperations.domain
+  - name: Source Code
+    url: https://github.com/openshift-virtualization/inflightoperations
   maintainers:
-  - email: your@email.com
-    name: Maintainer Name
+  - email: openshift-virtualization@redhat.com
+    name: OpenShift Virtualization
   maturity: alpha
   provider:
-    name: Provider Name
-    url: https://your.domain
+    name: Red Hat
+    url: https://www.redhat.com
   version: 0.0.3

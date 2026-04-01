@@ -74,9 +74,6 @@ spec:
         volumeMounts: []
         imagePullPolicy: IfNotPresent
         terminationMessagePolicy: FallbackToLogsOnError
-        env:
-          - name: OPERATOR_VERSION
-            value: v99.0.0
       volumes: []
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10
