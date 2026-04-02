@@ -114,5 +114,11 @@ func (r *Operations) operationLabels(subject *api.Subject, operation string, rul
 	labels[api.LabelOperation] = operation
 	labels[api.LabelRuleSet] = ruleset.Name
 	labels[api.LabelComponent] = ruleset.Spec.Component
+	if ownerRefs := subject.GetOwnerReferences(); len(ownerRefs) > 0 {
+		labels[api.LabelOwnerUID] = string(ownerRefs[0].UID)
+		labels[api.LabelOwnerName] = ownerRefs[0].Name
+		labels[api.LabelOwnerKind] = ownerRefs[0].Kind
+		labels[api.LabelOwnerAPIVersion] = ownerRefs[0].APIVersion
+	}
 	return labels
 }

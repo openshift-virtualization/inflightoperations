@@ -106,9 +106,14 @@ lint-config: golangci-lint ## Verify golangci-lint linter configuration
 ##@ Build
 
 .PHONY: build
-build: manifests generate fmt vet ## Build manager binary.
+build: manifests generate fmt vet ## Build manager and plugin binaries.
 	go build -o bin/manager ./cmd/manager/main.go
 	go build -o bin/csv-generator ./cmd/csv-generator
+	go build -o bin/kubectl-ifo ./cmd/kubectl-ifo
+
+.PHONY: install-plugin
+install-plugin: build ## Install kubectl-ifo plugin to GOBIN.
+	install bin/kubectl-ifo $(GOBIN)/kubectl-ifo
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
