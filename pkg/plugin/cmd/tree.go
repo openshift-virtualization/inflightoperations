@@ -46,10 +46,7 @@ func runTree(_ *cobra.Command, _ []string) error {
 
 	forest := model.BuildForest(ifos, model.DefaultCorrelators())
 
-	color := output.NewColorWriter()
-	if globalFlags.NoColor {
-		color.Enabled = false
-	}
+	color := output.NewColorWriter(globalFlags.Color, globalFlags.NoColor)
 
 	switch globalFlags.Output {
 	case OutputJSON:

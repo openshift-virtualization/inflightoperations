@@ -43,10 +43,7 @@ func runSummary(_ *cobra.Command, _ []string) error {
 		return nil
 	}
 
-	color := output.NewColorWriter()
-	if globalFlags.NoColor {
-		color.Enabled = false
-	}
+	color := output.NewColorWriter(globalFlags.Color, globalFlags.NoColor)
 
 	printComponentSummary(os.Stdout, ifos, color)
 	_, _ = fmt.Fprintln(os.Stdout)

@@ -36,10 +36,7 @@ func runGet(_ *cobra.Command, args []string) error {
 	case OutputYAML:
 		return output.PrintYAMLSingle(os.Stdout, ifo)
 	default:
-		color := output.NewColorWriter()
-		if globalFlags.NoColor {
-			color.Enabled = false
-		}
+		color := output.NewColorWriter(globalFlags.Color, globalFlags.NoColor)
 		printer := &output.TablePrinter{Color: color}
 		printer.PrintDetail(os.Stdout, ifo)
 		return nil

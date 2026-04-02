@@ -28,6 +28,7 @@ type GlobalFlags struct {
 	Kind       string
 	Operation  string
 	Output     string
+	Color      bool
 	NoColor    bool
 	Selector   string
 }
@@ -57,6 +58,8 @@ func NewRootCommand() *cobra.Command {
 		"Filter by operation name")
 	pf.StringVarP(&globalFlags.Output, "output", "O", "table",
 		"Output format: table, wide, json, yaml")
+	pf.BoolVar(&globalFlags.Color, "color", false,
+		"Force ANSI color output even when not a terminal")
 	pf.BoolVar(&globalFlags.NoColor, "no-color", false,
 		"Disable ANSI color output")
 	pf.StringVarP(&globalFlags.Selector, "selector", "l", "",

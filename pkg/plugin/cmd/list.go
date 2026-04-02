@@ -49,10 +49,7 @@ func runList(_ *cobra.Command, _ []string) error {
 	case OutputYAML:
 		return output.PrintYAML(os.Stdout, ifos)
 	default:
-		color := output.NewColorWriter()
-		if globalFlags.NoColor {
-			color.Enabled = false
-		}
+		color := output.NewColorWriter(globalFlags.Color, globalFlags.NoColor)
 		printer := &output.TablePrinter{
 			Color: color,
 			Wide:  globalFlags.Output == OutputWide,

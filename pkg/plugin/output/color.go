@@ -23,10 +23,17 @@ type ColorWriter struct {
 }
 
 // NewColorWriter returns a ColorWriter that auto-detects terminal support.
-func NewColorWriter() *ColorWriter {
-	return &ColorWriter{
-		Enabled: term.IsTerminal(int(os.Stdout.Fd())),
+// If forceOn is true, color is enabled regardless of terminal detection.
+// If forceOff is true, color is disabled. forceOff takes precedence.
+func NewColorWriter(forceOn, forceOff bool) *ColorWriter {
+	enabled := term.IsTerminal(int(os.Stdout.Fd()))
+	if forceOn {
+		enabled = true
 	}
+	if forceOff {
+		enabled = false
+	}
+	return &ColorWriter{Enabled: enabled}
 }
 
 func (c *ColorWriter) Bold(s string) string {
