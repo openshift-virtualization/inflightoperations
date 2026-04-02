@@ -23,6 +23,28 @@ func makeTestSubject(name, namespace, kind, apiVersion string, uid types.UID) *a
 	}
 }
 
+func makeTestSubjectWithOwner(name, namespace, kind, apiVersion string, uid types.UID, ownerName, ownerKind, ownerAPIVersion string, ownerUID types.UID) *api.Subject {
+	return &unstructured.Unstructured{
+		Object: map[string]any{
+			"apiVersion": apiVersion,
+			"kind":       kind,
+			"metadata": map[string]any{
+				"name":      name,
+				"namespace": namespace,
+				"uid":       string(uid),
+				"ownerReferences": []any{
+					map[string]any{
+						"apiVersion": ownerAPIVersion,
+						"kind":       ownerKind,
+						"name":       ownerName,
+						"uid":        string(ownerUID),
+					},
+				},
+			},
+		},
+	}
+}
+
 func makeTestRuleSet(name, component string) *api.OperationRuleSet {
 	return &api.OperationRuleSet{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
@@ -175,6 +197,51 @@ func TestOperationLabelsStaticOverrideDynamic(t *testing.T) {
 
 	if labels["shared-key"] != "static-value" {
 		t.Errorf("static label should win over dynamic: expected static-value, got %s", labels["shared-key"])
+	}
+}
+
+func TestOperationLabelsWithOwnerRef(t *testing.T) {
+	ops := &Operations{}
+	subject := makeTestSubjectWithOwner(
+		"aaq-operator", "openshift-cnv", "Deployment", "apps/v1", "deploy-uid",
+		"kubevirt-hyperconverged-operator.v4.20.8", "ClusterServiceVersion", "operators.coreos.com/v1alpha1", "csv-uid",
+	)
+	ruleset := makeTestRuleSet("deployment-rules", "")
+
+	labels := ops.operationLabels(subject, "Rollout", ruleset, nil)
+
+	if labels[api.LabelOwnerUID] != "csv-uid" {
+		t.Errorf("expected owner UID csv-uid, got %s", labels[api.LabelOwnerUID])
+	}
+	if labels[api.LabelOwnerName] != "kubevirt-hyperconverged-operator.v4.20.8" {
+		t.Errorf("expected owner name, got %s", labels[api.LabelOwnerName])
+	}
+	if labels[api.LabelOwnerKind] != "ClusterServiceVersion" {
+		t.Errorf("expected owner kind ClusterServiceVersion, got %s", labels[api.LabelOwnerKind])
+	}
+	if labels[api.LabelOwnerGroup] != "operators.coreos.com" {
+		t.Errorf("expected owner group operators.coreos.com, got %s", labels[api.LabelOwnerGroup])
+	}
+	if labels[api.LabelOwnerVersion] != "v1alpha1" {
+		t.Errorf("expected owner version v1alpha1, got %s", labels[api.LabelOwnerVersion])
+	}
+}
+
+func TestOperationLabelsOwnerCoreAPIGroup(t *testing.T) {
+	ops := &Operations{}
+	subject := makeTestSubjectWithOwner(
+		"my-pod", "default", "Pod", "v1", "pod-uid",
+		"my-rs", "ReplicaSet", "apps/v1", "rs-uid",
+	)
+	ruleset := makeTestRuleSet("pod-rules", "")
+
+	labels := ops.operationLabels(subject, "Starting", ruleset, nil)
+
+	if labels[api.LabelOwnerGroup] != "apps" {
+		t.Errorf("expected owner group apps, got %s", labels[api.LabelOwnerGroup])
+	}
+	if labels[api.LabelOwnerVersion] != "v1" {
+		t.Errorf("expected owner version v1, got %s", labels[api.LabelOwnerVersion])
 	}
 }
 

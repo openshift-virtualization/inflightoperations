@@ -12,6 +12,7 @@ import (
 	"github.com/openshift-virtualization/inflightoperations/lib/logging"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8slabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -118,7 +119,9 @@ func (r *Operations) operationLabels(subject *api.Subject, operation string, rul
 		labels[api.LabelOwnerUID] = string(ownerRefs[0].UID)
 		labels[api.LabelOwnerName] = ownerRefs[0].Name
 		labels[api.LabelOwnerKind] = ownerRefs[0].Kind
-		labels[api.LabelOwnerAPIVersion] = ownerRefs[0].APIVersion
+		gv, _ := schema.ParseGroupVersion(ownerRefs[0].APIVersion)
+		labels[api.LabelOwnerGroup] = gv.Group
+		labels[api.LabelOwnerVersion] = gv.Version
 	}
 	return labels
 }
