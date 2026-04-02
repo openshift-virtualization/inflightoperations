@@ -172,8 +172,8 @@ func buildCSV(
 			},
 			Maintainers: []Maintainer{
 				{
-					Name:  "OpenShift Virtualization",
-					Email: "openshift-virtualization@redhat.com",
+					Name:  "Samuel Lucidi",
+					Email: "slucidi@redhat.com",
 				},
 			},
 			Provider: Provider{
@@ -207,9 +207,8 @@ func buildCSV(
 						{
 							Name: serviceAccountName,
 							Label: map[string]string{
-								"app.kubernetes.io/name":       "inflightoperations",
-								"app.kubernetes.io/managed-by": "kustomize",
-								"control-plane":                "controller-manager",
+								"app.kubernetes.io/name": "inflightoperations",
+								"control-plane":          "controller-manager",
 							},
 							Spec: DeploymentSpec{
 								Replicas: 1,

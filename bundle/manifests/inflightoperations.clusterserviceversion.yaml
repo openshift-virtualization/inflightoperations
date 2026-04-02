@@ -5,9 +5,9 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    containerImage: quay.io/ifo-operator/controller:v0.0.3
+    containerImage: quay.io/ifo-operator/controller:v0.0.4
     repository: https://github.com/openshift-virtualization/inflightoperations
-  name: inflightoperations.v0.0.3
+  name: inflightoperations.v0.0.4
   namespace: inflightoperations-system
 spec:
   customresourcedefinitions:
@@ -82,7 +82,6 @@ spec:
         serviceAccountName: inflightoperations-controller-manager
       deployments:
       - label:
-          app.kubernetes.io/managed-by: kustomize
           app.kubernetes.io/name: inflightoperations
           control-plane: controller-manager
         name: inflightoperations-controller-manager
@@ -109,8 +108,8 @@ spec:
                 - /manager
                 env:
                 - name: OPERATOR_VERSION
-                  value: v0.0.3
-                image: quay.io/ifo-operator/controller:v0.0.3
+                  value: v0.0.4
+                image: quay.io/ifo-operator/controller:v0.0.4
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -198,10 +197,10 @@ spec:
   - name: Source Code
     url: https://github.com/openshift-virtualization/inflightoperations
   maintainers:
-  - email: openshift-virtualization@redhat.com
-    name: OpenShift Virtualization
+  - email: slucidi@redhat.com
+    name: Samuel Lucidi
   maturity: alpha
   provider:
     name: Red Hat
     url: https://www.redhat.com
-  version: 0.0.3
+  version: 0.0.4

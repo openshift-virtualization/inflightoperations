@@ -1,5 +1,5 @@
 IMAGE_REGISTRY ?= quay.io/ifo-operator
-IMAGE_TAG ?= latest
+IMAGE_TAG ?= v99.0.0
 VERSION = $(patsubst v%,%,$(IMAGE_TAG))
 CONTROLLER_IMAGE ?= $(IMAGE_REGISTRY)/controller:$(IMAGE_TAG)
 
@@ -119,11 +119,11 @@ run: manifests generate fmt vet ## Run a controller from your host.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: docker-build
 docker-build: ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build -t $(IMAGE_NAME) .
+	$(CONTAINER_TOOL) build -t $(CONTROLLER_IMAGE) .
 
 .PHONY: docker-push
 docker-push: build-controller-image ## Push docker image with the manager.
-	$(CONTAINER_TOOL) push $(IMAGE_NAME)
+	$(CONTAINER_TOOL) push $(CONTROLLER_IMAGE)
 
 .PHONY: bundle
 bundle: build ## Generate the OLM bundle.
