@@ -17,6 +17,14 @@ const (
 	LabelOperation        = "ifo.kubevirt.io/operation"
 	LabelComponent        = "ifo.kubevirt.io/component"
 	LabelRuleSet          = "ifo.kubevirt.io/ruleset"
+	LabelCorrelationGroup = "ifo.kubevirt.io/correlation-group"
+	LabelCorrelationRole  = "ifo.kubevirt.io/correlation-role"
+)
+
+// Correlation role values
+const (
+	CorrelationRoleRoot  = "root"
+	CorrelationRoleChild = "child"
 )
 
 // Finalizers

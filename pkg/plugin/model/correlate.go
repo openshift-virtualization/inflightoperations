@@ -1,134 +1,91 @@
 package model
 
-// OLMCorrelator groups OLM resources (Subscription, InstallPlan, CSV) in the same namespace.
-// Subscription becomes the root; InstallPlan and CSV become children.
-type OLMCorrelator struct{}
+import (
+	"slices"
 
-func (c *OLMCorrelator) Name() string { return "olm" }
+	api "github.com/openshift-virtualization/inflightoperations/api/v1alpha1"
+)
 
-func (c *OLMCorrelator) Correlate(forest *Forest) {
-	// Index OLM roots by namespace.
-	type olmGroup struct {
-		subscription *Node
-		children     []*Node
-	}
-	groups := make(map[string]*olmGroup)
+// LabelCorrelator groups IFOs using ifo.kubevirt.io/correlation-group and
+// ifo.kubevirt.io/correlation-role labels. IFOs sharing the same
+// correlation-group value (within the same namespace for namespace-scoped
+// subjects, or globally for cluster-scoped subjects) are linked into a tree,
+// with the node carrying correlation-role=root as the parent.
+//
+// If no node in a group has correlation-role=root, the group is skipped
+// and all members remain independent roots.
+type LabelCorrelator struct{}
 
+func (c *LabelCorrelator) Name() string { return "label" }
+
+type groupKey struct {
+	group     string
+	namespace string
+}
+
+func (c *LabelCorrelator) Correlate(forest *Forest) {
+	groups := make(map[groupKey][]*Node)
 	remaining := make([]*Node, 0, len(forest.Roots))
+
 	for _, root := range forest.Roots {
-		if root.IFO.Spec.Component != "olm" {
+		group := root.IFO.Labels[api.LabelCorrelationGroup]
+		if group == "" {
 			remaining = append(remaining, root)
 			continue
 		}
-		ns := root.IFO.Spec.Subject.Namespace
-		g, ok := groups[ns]
-		if !ok {
-			g = &olmGroup{}
-			groups[ns] = g
+		key := groupKey{
+			group:     group,
+			namespace: root.IFO.Spec.Subject.Namespace,
 		}
-		if root.IFO.Spec.Subject.Kind == "Subscription" {
-			g.subscription = root
-		} else {
-			g.children = append(g.children, root)
-		}
+		groups[key] = append(groups[key], root)
 	}
 
-	for _, g := range groups {
-		if g.subscription == nil {
-			// No subscription root — leave children as independent roots.
-			remaining = append(remaining, g.children...)
+	for _, nodes := range groups {
+		rootNode := findGroupRoot(nodes)
+		if rootNode == nil {
+			// No root in this group — leave all as independent roots.
+			remaining = append(remaining, nodes...)
 			continue
 		}
-		for _, child := range g.children {
-			child.Parent = g.subscription
-			g.subscription.Children = append(g.subscription.Children, child)
+		for _, n := range nodes {
+			if n == rootNode {
+				continue
+			}
+			n.Parent = rootNode
+			rootNode.Children = append(rootNode.Children, n)
 		}
-		remaining = append(remaining, g.subscription)
+		remaining = append(remaining, rootNode)
 	}
+
 	forest.Roots = remaining
 }
 
-// HCOCorrelator groups HCO-managed component operator CRs under the HCO IFO.
-type HCOCorrelator struct{}
-
-func (c *HCOCorrelator) Name() string { return "hco" }
-
-var hcoManagedKinds = map[string]bool{
-	"KubeVirt":            true,
-	"CDI":                 true,
-	"NetworkAddonsConfig": true,
-	"SSP":                 true,
-	"HostPathProvisioner": true,
-	"AAQ":                 true,
+// findGroupRoot returns the node with correlation-role=root.
+// If multiple roots exist, returns the one with the earliest creation timestamp.
+// If no root exists, returns nil.
+func findGroupRoot(nodes []*Node) *Node {
+	var candidates []*Node
+	for _, n := range nodes {
+		if n.IFO.Labels[api.LabelCorrelationRole] == api.CorrelationRoleRoot {
+			candidates = append(candidates, n)
+		}
+	}
+	if len(candidates) == 0 {
+		return nil
+	}
+	if len(candidates) == 1 {
+		return candidates[0]
+	}
+	// Multiple roots — pick earliest by creation time.
+	slices.SortFunc(candidates, func(a, b *Node) int {
+		return a.IFO.CreationTimestamp.Compare(b.IFO.CreationTimestamp.Time)
+	})
+	return candidates[0]
 }
 
-func (c *HCOCorrelator) Correlate(forest *Forest) {
-	// Find HCO root.
-	var hcoNode *Node
-	for _, root := range forest.Roots {
-		if root.IFO.Spec.Subject.Kind == "HyperConverged" {
-			hcoNode = root
-			break
-		}
-	}
-	if hcoNode == nil {
-		return
-	}
-
-	var remaining []*Node
-	for _, root := range forest.Roots {
-		if root == hcoNode {
-			remaining = append(remaining, root)
-			continue
-		}
-		if hcoManagedKinds[root.IFO.Spec.Subject.Kind] {
-			root.Parent = hcoNode
-			hcoNode.Children = append(hcoNode.Children, root)
-		} else {
-			remaining = append(remaining, root)
-		}
-	}
-	forest.Roots = remaining
-}
-
-// ClusterVersionCorrelator groups ClusterOperator IFOs under the ClusterVersion IFO.
-type ClusterVersionCorrelator struct{}
-
-func (c *ClusterVersionCorrelator) Name() string { return "clusterversion" }
-
-func (c *ClusterVersionCorrelator) Correlate(forest *Forest) {
-	var cvNode *Node
-	for _, root := range forest.Roots {
-		if root.IFO.Spec.Subject.Kind == "ClusterVersion" {
-			cvNode = root
-			break
-		}
-	}
-	if cvNode == nil {
-		return
-	}
-
-	var remaining []*Node
-	for _, root := range forest.Roots {
-		if root == cvNode {
-			remaining = append(remaining, root)
-			continue
-		}
-		if root.IFO.Spec.Subject.Kind == "ClusterOperator" {
-			root.Parent = cvNode
-			cvNode.Children = append(cvNode.Children, root)
-		} else {
-			remaining = append(remaining, root)
-		}
-	}
-	forest.Roots = remaining
-}
-
-// DefaultCorrelators returns the standard set of heuristic correlators.
+// DefaultCorrelators returns the standard set of correlators.
 func DefaultCorrelators() []Correlator {
 	return []Correlator{
-		&OLMCorrelator{},
-		&HCOCorrelator{},
-		&ClusterVersionCorrelator{},
+		&LabelCorrelator{},
 	}
 }

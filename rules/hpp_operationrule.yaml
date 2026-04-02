@@ -4,6 +4,9 @@ metadata:
   name: hpp-rules
 spec:
   component: kubevirt
+  labels:
+    ifo.kubevirt.io/correlation-group: hco-stack
+    ifo.kubevirt.io/correlation-role: child
   target:
     group: hostpathprovisioner.kubevirt.io
     version: v1beta1

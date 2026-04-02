@@ -4,6 +4,9 @@ metadata:
   name: installplan-rules
 spec:
   component: olm
+  labels:
+    ifo.kubevirt.io/correlation-group: olm-install
+    ifo.kubevirt.io/correlation-role: child
   target:
     group: operators.coreos.com
     version: v1alpha1

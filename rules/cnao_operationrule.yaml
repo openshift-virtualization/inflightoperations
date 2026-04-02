@@ -4,6 +4,9 @@ metadata:
   name: cnao-rules
 spec:
   component: kubevirt
+  labels:
+    ifo.kubevirt.io/correlation-group: hco-stack
+    ifo.kubevirt.io/correlation-role: child
   target:
     group: networkaddonsoperator.network.kubevirt.io
     version: v1

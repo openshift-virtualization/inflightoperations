@@ -4,6 +4,9 @@ metadata:
   name: subscription-rules
 spec:
   component: olm
+  labels:
+    ifo.kubevirt.io/correlation-group: olm-install
+    ifo.kubevirt.io/correlation-role: root
   target:
     group: operators.coreos.com
     version: v1alpha1

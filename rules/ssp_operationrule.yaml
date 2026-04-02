@@ -4,6 +4,9 @@ metadata:
   name: ssp-rules
 spec:
   component: kubevirt
+  labels:
+    ifo.kubevirt.io/correlation-group: hco-stack
+    ifo.kubevirt.io/correlation-role: child
   target:
     group: ssp.kubevirt.io
     version: v1beta3

@@ -4,6 +4,9 @@ metadata:
   name: aaq-rules
 spec:
   component: kubevirt
+  labels:
+    ifo.kubevirt.io/correlation-group: hco-stack
+    ifo.kubevirt.io/correlation-role: child
   target:
     group: aaq.kubevirt.io
     version: v1alpha1

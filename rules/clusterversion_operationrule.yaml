@@ -4,6 +4,9 @@ metadata:
   name: clusterversion-rules
 spec:
   component: openshift
+  labels:
+    ifo.kubevirt.io/correlation-group: cluster-update
+    ifo.kubevirt.io/correlation-role: root
   target:
     group: config.openshift.io
     version: v1
