@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: e2e-ownerref
+  namespace: e2e-test
+  ownerReferences:
+    - apiVersion: operators.coreos.com/v1alpha1
+      kind: ClusterServiceVersion
+      name: fake-csv.v1.0.0
+      uid: e2e00000-0000-0000-0000-000000000001
+      blockOwnerDeletion: false
+      controller: false
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: e2e-ownerref
+  template:
+    metadata:
+      labels:
+        app: e2e-ownerref
+    spec:
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10
+          resources:
+            limits:
+              cpu: 10m
+              memory: 16Mi

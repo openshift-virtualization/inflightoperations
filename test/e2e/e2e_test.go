@@ -539,6 +539,88 @@ var _ = Describe("Manager", Ordered, func() {
 			}
 		})
 
+		It("should capture subject UID, component, and owner reference labels on IFOs", func() {
+			By("applying an OperationRuleSet with a component")
+			kubectlApply(testdataPath("ors-component.yaml"))
+
+			By("waiting for the ruleset to be Ready")
+			verifyReady := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ors", "component-rules",
+					"-o", "jsonpath={.status.conditions[?(@.type=='Ready')].status}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("True"))
+			}
+			Eventually(verifyReady).Should(Succeed())
+
+			By("creating a Deployment with ownerReferences")
+			kubectlApply(testdataPath("deploy-ownerref.yaml"))
+
+			By("waiting for an IFO to be created from the component ruleset")
+			ifoSelector := fmt.Sprintf("ifo.kubevirt.io/subject-name=e2e-ownerref,ifo.kubevirt.io/ruleset=component-rules,ifo.kubevirt.io/subject-namespace=%s", testNS)
+			verifyIFO := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "ifo",
+					"-l", ifoSelector,
+					"-o", "jsonpath={.items[0].spec.operation}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("Rollout"))
+			}
+			Eventually(verifyIFO).Should(Succeed())
+
+			By("verifying the component field is set from the OperationRuleSet")
+			cmd := exec.Command("kubectl", "get", "ifo",
+				"-l", ifoSelector,
+				"-o", "jsonpath={.items[0].spec.component}")
+			output, err := utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).To(Equal("e2e-component"))
+
+			By("verifying the subject UID is populated")
+			cmd = exec.Command("kubectl", "get", "ifo",
+				"-l", ifoSelector,
+				"-o", "jsonpath={.items[0].spec.subject.uid}")
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).NotTo(BeEmpty(), "subject UID should be populated")
+
+			By("verifying the subject ownerReferences are captured")
+			cmd = exec.Command("kubectl", "get", "ifo",
+				"-l", ifoSelector,
+				"-o", "jsonpath={.items[0].spec.subject.ownerReferences[0].kind}")
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).To(Equal("ClusterServiceVersion"))
+
+			By("verifying owner-group label splits apiVersion correctly")
+			cmd = exec.Command("kubectl", "get", "ifo",
+				"-l", ifoSelector,
+				"-o", `jsonpath={.items[0].metadata.labels.ifo\.kubevirt\.io/owner-group}`)
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).To(Equal("operators.coreos.com"))
+
+			By("verifying owner-version label")
+			cmd = exec.Command("kubectl", "get", "ifo",
+				"-l", ifoSelector,
+				"-o", `jsonpath={.items[0].metadata.labels.ifo\.kubevirt\.io/owner-version}`)
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).To(Equal("v1alpha1"))
+
+			By("verifying component label")
+			cmd = exec.Command("kubectl", "get", "ifo",
+				"-l", ifoSelector,
+				"-o", `jsonpath={.items[0].metadata.labels.ifo\.kubevirt\.io/component}`)
+			output, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).To(Equal("e2e-component"))
+
+			By("cleaning up")
+			kubectlDelete(testdataPath("deploy-ownerref.yaml"))
+			kubectlDelete(testdataPath("ors-component.yaml"))
+		})
+
 		It("should clean up when an OperationRuleSet is deleted", func() {
 			By("applying a temporary OperationRuleSet")
 			kubectlApply(testdataPath("ors-temp.yaml"))
