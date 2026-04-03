@@ -26,8 +26,8 @@ FROM gcr.io/distroless/static:nonroot
 WORKDIR /
 COPY --from=builder /workspace/manager .
 COPY --from=builder /workspace/csv-generator /usr/bin/csv-generator
-COPY --from=builder /workspace/bundle/ bundle/
 COPY --from=builder /workspace/config/crd/bases config/crd/bases/
+COPY --from=builder /workspace/config/rbac config/rbac/
 USER 65532:65532
 
 ENTRYPOINT ["/manager"]
