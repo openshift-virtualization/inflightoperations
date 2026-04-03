@@ -102,7 +102,8 @@ func TestBuildForest_NoUIDNoMerge(t *testing.T) {
 func TestBuildForest_OwnerRefLinking(t *testing.T) {
 	// Basic ownerRef tree: VM owns VMI.
 	vm := makeIFOWithUID("VirtualMachine", "my-vm", "default", "kubevirt", "uid-vm", "Starting")
-	vmi := makeIFOWithOwnerRef("VirtualMachineInstance", "my-vm-abc", "default", "kubevirt", "uid-vmi", "Scheduling", "uid-vm")
+	vmi := makeIFOWithOwnerRef(
+		"VirtualMachineInstance", "my-vm-abc", "default", "kubevirt", "uid-vmi", "Scheduling", "uid-vm")
 
 	ifos := []api.InFlightOperation{vm, vmi}
 	forest := BuildForest(ifos, nil)

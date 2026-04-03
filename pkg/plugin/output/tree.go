@@ -124,20 +124,15 @@ func (p *TreePrinter) computeMaxWidth(n *model.Node, linePrefix, childPrefix str
 	return maxW
 }
 
-func (p *TreePrinter) printSubtree(w io.Writer, n *model.Node, linePrefix, childPrefix string, colWidth, opColWidth int) {
+func (p *TreePrinter) printSubtree(
+	w io.Writer, n *model.Node, linePrefix, childPrefix string, colWidth, opColWidth int) {
 	subject := formatSubject(n)
 	operations := p.formatOperations(n)
 	plainOpsWidth := operationsWidth(n)
 	age := p.formatAge(n)
 
-	padding := colWidth - displayWidth(linePrefix) - len(subject)
-	if padding < 2 {
-		padding = 2
-	}
-	opPadding := opColWidth - plainOpsWidth
-	if opPadding < 0 {
-		opPadding = 0
-	}
+	padding := max(colWidth-displayWidth(linePrefix)-len(subject), 2)
+	opPadding := max(opColWidth-plainOpsWidth, 0)
 	_, _ = fmt.Fprintf(w, "%s%s%*s%s%*s  %s\n", linePrefix, subject, padding, "", operations, opPadding, "", age)
 
 	for i, child := range n.Children {
