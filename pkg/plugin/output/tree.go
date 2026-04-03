@@ -5,6 +5,7 @@ import (
 	"io"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/openshift-virtualization/inflightoperations/pkg/plugin/model"
 )
@@ -14,6 +15,8 @@ const (
 	treeCorner = "└── "
 	treeBar    = "│   "
 	treeBlank  = "    "
+
+	clusterScoped = "(cluster-scoped)"
 )
 
 // TreePrinter renders a forest of IFO nodes as an indented tree.
@@ -21,72 +24,89 @@ type TreePrinter struct {
 	Color *ColorWriter
 }
 
-// PrintForest renders the entire forest grouped by component.
+// PrintForest renders the entire forest grouped by component, then namespace.
 func (p *TreePrinter) PrintForest(w io.Writer, forest *model.Forest) {
 	if len(forest.Roots) == 0 && len(forest.Orphans) == 0 {
 		_, _ = fmt.Fprintln(w, "No in-flight operations found.")
 		return
 	}
 
+	allRoots := append(forest.Roots, forest.Orphans...)
+
 	// Compute column width across the entire forest.
 	colWidth := 0
-	for _, root := range forest.Roots {
-		if w := p.computeMaxWidth(root, "  ", "  "); w > colWidth {
-			colWidth = w
-		}
-	}
-	for _, orphan := range forest.Orphans {
-		if w := p.computeMaxWidth(orphan, "  ", "  "); w > colWidth {
+	for _, root := range allRoots {
+		if w := p.computeMaxWidth(root, "    ", "    "); w > colWidth {
 			colWidth = w
 		}
 	}
 	colWidth += 2 // minimum gap before operation column
 
-	// Group roots by component for section headers.
-	groups := make(map[string][]*model.Node)
-	var order []string
-	for _, root := range forest.Roots {
+	// Compute max operations width for age column alignment.
+	opColWidth := 0
+	for _, root := range allRoots {
+		if w := computeMaxOpsWidth(root); w > opColWidth {
+			opColWidth = w
+		}
+	}
+
+	// Group roots by component, then by namespace.
+	type compGroup struct {
+		namespaces map[string][]*model.Node
+		nsOrder    []string
+	}
+	groups := make(map[string]*compGroup)
+	var compOrder []string
+
+	for _, root := range allRoots {
 		comp := root.IFO.Spec.Component
 		if comp == "" {
 			comp = "(none)"
 		}
-		if _, seen := groups[comp]; !seen {
-			order = append(order, comp)
+		ns := rootNamespace(root)
+
+		cg, ok := groups[comp]
+		if !ok {
+			cg = &compGroup{namespaces: make(map[string][]*model.Node)}
+			groups[comp] = cg
+			compOrder = append(compOrder, comp)
 		}
-		groups[comp] = append(groups[comp], root)
+		if _, seen := cg.namespaces[ns]; !seen {
+			cg.nsOrder = append(cg.nsOrder, ns)
+		}
+		cg.namespaces[ns] = append(cg.namespaces[ns], root)
 	}
 
-	for i, comp := range order {
+	for i, comp := range compOrder {
 		if i > 0 {
 			_, _ = fmt.Fprintln(w)
 		}
 		_, _ = fmt.Fprintln(w, p.Color.Bold(comp))
-		roots := groups[comp]
-		for _, root := range roots {
-			p.printSubtree(w, root, "  ", "  ", colWidth)
-		}
-	}
 
-	if len(forest.Orphans) > 0 {
-		if len(forest.Roots) > 0 {
-			_, _ = fmt.Fprintln(w)
-		}
-		_, _ = fmt.Fprintln(w, p.Color.Bold("(ungrouped)"))
-		for _, orphan := range forest.Orphans {
-			p.printSubtree(w, orphan, "  ", "  ", colWidth)
+		cg := groups[comp]
+		slices.Sort(cg.nsOrder)
+		for _, ns := range cg.nsOrder {
+			_, _ = fmt.Fprintf(w, "  %s\n", p.Color.BrightYellow(ns))
+			for _, root := range cg.namespaces[ns] {
+				p.printSubtree(w, root, "    ", "    ", colWidth, opColWidth)
+			}
 		}
 	}
 }
 
 // PrintTree renders a single tree (for --for mode).
 func (p *TreePrinter) PrintTree(w io.Writer, root *model.Node) {
-	colWidth := p.computeMaxWidth(root, "", "") + 2
-	p.printSubtree(w, root, "", "", colWidth)
+	ns := rootNamespace(root)
+	_, _ = fmt.Fprintln(w, p.Color.BrightYellow(ns))
+
+	colWidth := p.computeMaxWidth(root, "  ", "  ") + 2
+	opColWidth := computeMaxOpsWidth(root)
+	p.printSubtree(w, root, "  ", "  ", colWidth, opColWidth)
 }
 
-// computeMaxWidth returns the maximum (prefix + subject) width across a subtree.
+// computeMaxWidth returns the maximum (prefix + subject) visual width across a subtree.
 func (p *TreePrinter) computeMaxWidth(n *model.Node, linePrefix, childPrefix string) int {
-	maxW := len(linePrefix) + len(formatSubject(n))
+	maxW := displayWidth(linePrefix) + len(formatSubject(n))
 	for i, child := range n.Children {
 		isLast := i == len(n.Children)-1
 		var connector, nextPrefix string
@@ -104,16 +124,21 @@ func (p *TreePrinter) computeMaxWidth(n *model.Node, linePrefix, childPrefix str
 	return maxW
 }
 
-func (p *TreePrinter) printSubtree(w io.Writer, n *model.Node, linePrefix, childPrefix string, colWidth int) {
+func (p *TreePrinter) printSubtree(w io.Writer, n *model.Node, linePrefix, childPrefix string, colWidth, opColWidth int) {
 	subject := formatSubject(n)
 	operations := p.formatOperations(n)
+	plainOpsWidth := operationsWidth(n)
 	age := p.formatAge(n)
 
-	padding := colWidth - len(linePrefix) - len(subject)
+	padding := colWidth - displayWidth(linePrefix) - len(subject)
 	if padding < 2 {
 		padding = 2
 	}
-	_, _ = fmt.Fprintf(w, "%s%s%*s%s  %s\n", linePrefix, subject, padding, "", operations, age)
+	opPadding := opColWidth - plainOpsWidth
+	if opPadding < 0 {
+		opPadding = 0
+	}
+	_, _ = fmt.Fprintf(w, "%s%s%*s%s%*s  %s\n", linePrefix, subject, padding, "", operations, opPadding, "", age)
 
 	for i, child := range n.Children {
 		isLast := i == len(n.Children)-1
@@ -125,7 +150,7 @@ func (p *TreePrinter) printSubtree(w io.Writer, n *model.Node, linePrefix, child
 			connector = childPrefix + treeBranch
 			nextPrefix = childPrefix + treeBar
 		}
-		p.printSubtree(w, child, connector, nextPrefix, colWidth)
+		p.printSubtree(w, child, connector, nextPrefix, colWidth, opColWidth)
 	}
 }
 
@@ -156,6 +181,28 @@ func (p *TreePrinter) formatAge(n *model.Node) string {
 	return p.Color.Dim(FormatAge(oldest))
 }
 
+// operationsWidth returns the plain-text visual width of the operations
+// string for a node (without ANSI color codes).
+func operationsWidth(n *model.Node) int {
+	ops := []string{n.IFO.Spec.Operation}
+	for _, sib := range n.Siblings {
+		ops = append(ops, sib.Spec.Operation)
+	}
+	slices.Sort(ops)
+	return len(strings.Join(ops, ", "))
+}
+
+// computeMaxOpsWidth returns the maximum operations width across a subtree.
+func computeMaxOpsWidth(n *model.Node) int {
+	maxW := operationsWidth(n)
+	for _, child := range n.Children {
+		if w := computeMaxOpsWidth(child); w > maxW {
+			maxW = w
+		}
+	}
+	return maxW
+}
+
 func colorizeOperation(c *ColorWriter, op string) string {
 	if isErrorOperation(op) {
 		return c.Red(op)
@@ -168,12 +215,21 @@ func colorizeOperation(c *ColorWriter, op string) string {
 
 func formatSubject(n *model.Node) string {
 	s := n.IFO.Spec.Subject
-	if s.Namespace != "" {
-		ns := s.Namespace
-		if len(ns) > 20 {
-			ns = ns[:17] + "..."
-		}
-		return fmt.Sprintf("%s/%s (%s)", s.Kind, s.Name, ns)
-	}
 	return fmt.Sprintf("%s/%s", s.Kind, s.Name)
+}
+
+// rootNamespace returns the display namespace for a tree root.
+func rootNamespace(n *model.Node) string {
+	ns := n.IFO.Spec.Subject.Namespace
+	if ns == "" {
+		return clusterScoped
+	}
+	return ns
+}
+
+// displayWidth returns the visual width of a string, counting runes
+// rather than bytes. Tree-drawing characters like ├, └, │ are multi-byte
+// UTF-8 but each occupies one terminal cell.
+func displayWidth(s string) int {
+	return utf8.RuneCountInString(s)
 }

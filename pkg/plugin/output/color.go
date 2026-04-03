@@ -8,13 +8,14 @@ import (
 
 // ANSI color codes.
 const (
-	reset  = "\033[0m"
-	bold   = "\033[1m"
-	dim    = "\033[2m"
-	red    = "\033[31m"
-	green  = "\033[32m"
-	yellow = "\033[33m"
-	cyan   = "\033[36m"
+	reset        = "\033[0m"
+	bold         = "\033[1m"
+	dim          = "\033[2m"
+	red          = "\033[31m"
+	green        = "\033[32m"
+	yellow       = "\033[33m"
+	cyan         = "\033[36m"
+	brightYellow = "\033[93m"
 )
 
 // ColorWriter controls whether ANSI color codes are emitted.
@@ -76,4 +77,11 @@ func (c *ColorWriter) Cyan(s string) string {
 		return s
 	}
 	return cyan + s + reset
+}
+
+func (c *ColorWriter) BrightYellow(s string) string {
+	if !c.Enabled {
+		return s
+	}
+	return brightYellow + s + reset
 }
