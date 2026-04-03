@@ -21,14 +21,23 @@ func BuildForest(ifos []api.InFlightOperation, correlators []Correlator) *Forest
 // buildOwnerRefTrees creates trees by matching subject UIDs to ownerReference UIDs.
 // If IFO A's subject UID appears in IFO B's subject.ownerReferences, then A is B's parent.
 func buildOwnerRefTrees(ifos []api.InFlightOperation) *Forest {
-	nodes := make([]*Node, len(ifos))
+	nodes := make([]*Node, 0, len(ifos))
 	bySubjectUID := make(map[string]*Node, len(ifos))
 
 	// Create nodes and index by subject UID.
+	// When multiple IFOs share a subject UID (multiple operations on the
+	// same resource), merge them into one node so children link to the
+	// subject rather than an arbitrary operation.
 	for i := range ifos {
-		n := &Node{IFO: &ifos[i]}
-		nodes[i] = n
 		uid := ifos[i].Spec.Subject.UID
+		if uid != "" {
+			if existing, ok := bySubjectUID[uid]; ok {
+				existing.Siblings = append(existing.Siblings, &ifos[i])
+				continue
+			}
+		}
+		n := &Node{IFO: &ifos[i]}
+		nodes = append(nodes, n)
 		if uid != "" {
 			bySubjectUID[uid] = n
 		}

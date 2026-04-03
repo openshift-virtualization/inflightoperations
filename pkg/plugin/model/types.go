@@ -5,8 +5,11 @@ import (
 )
 
 // Node wraps an IFO with tree relationship pointers.
+// When multiple IFOs share the same subject UID (multiple operations on the
+// same resource), the first is stored in IFO and the rest in Siblings.
 type Node struct {
 	IFO      *api.InFlightOperation
+	Siblings []*api.InFlightOperation
 	Children []*Node
 	Parent   *Node
 }

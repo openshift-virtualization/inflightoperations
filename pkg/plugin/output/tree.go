@@ -3,6 +3,8 @@ package output
 import (
 	"fmt"
 	"io"
+	"slices"
+	"strings"
 
 	"github.com/openshift-virtualization/inflightoperations/pkg/plugin/model"
 )
@@ -26,6 +28,20 @@ func (p *TreePrinter) PrintForest(w io.Writer, forest *model.Forest) {
 		return
 	}
 
+	// Compute column width across the entire forest.
+	colWidth := 0
+	for _, root := range forest.Roots {
+		if w := p.computeMaxWidth(root, "  ", "  "); w > colWidth {
+			colWidth = w
+		}
+	}
+	for _, orphan := range forest.Orphans {
+		if w := p.computeMaxWidth(orphan, "  ", "  "); w > colWidth {
+			colWidth = w
+		}
+	}
+	colWidth += 2 // minimum gap before operation column
+
 	// Group roots by component for section headers.
 	groups := make(map[string][]*model.Node)
 	var order []string
@@ -47,7 +63,7 @@ func (p *TreePrinter) PrintForest(w io.Writer, forest *model.Forest) {
 		_, _ = fmt.Fprintln(w, p.Color.Bold(comp))
 		roots := groups[comp]
 		for _, root := range roots {
-			p.printSubtree(w, root, "  ", "  ")
+			p.printSubtree(w, root, "  ", "  ", colWidth)
 		}
 	}
 
@@ -57,22 +73,47 @@ func (p *TreePrinter) PrintForest(w io.Writer, forest *model.Forest) {
 		}
 		_, _ = fmt.Fprintln(w, p.Color.Bold("(ungrouped)"))
 		for _, orphan := range forest.Orphans {
-			p.printSubtree(w, orphan, "  ", "  ")
+			p.printSubtree(w, orphan, "  ", "  ", colWidth)
 		}
 	}
 }
 
 // PrintTree renders a single tree (for --for mode).
 func (p *TreePrinter) PrintTree(w io.Writer, root *model.Node) {
-	p.printSubtree(w, root, "", "")
+	colWidth := p.computeMaxWidth(root, "", "") + 2
+	p.printSubtree(w, root, "", "", colWidth)
 }
 
-func (p *TreePrinter) printSubtree(w io.Writer, n *model.Node, linePrefix, childPrefix string) {
-	subject := formatSubject(n)
-	operation := colorizeOperation(p.Color, n.IFO.Spec.Operation)
-	age := p.Color.Dim(FormatAge(n.IFO.CreationTimestamp.Time))
+// computeMaxWidth returns the maximum (prefix + subject) width across a subtree.
+func (p *TreePrinter) computeMaxWidth(n *model.Node, linePrefix, childPrefix string) int {
+	maxW := len(linePrefix) + len(formatSubject(n))
+	for i, child := range n.Children {
+		isLast := i == len(n.Children)-1
+		var connector, nextPrefix string
+		if isLast {
+			connector = childPrefix + treeCorner
+			nextPrefix = childPrefix + treeBlank
+		} else {
+			connector = childPrefix + treeBranch
+			nextPrefix = childPrefix + treeBar
+		}
+		if w := p.computeMaxWidth(child, connector, nextPrefix); w > maxW {
+			maxW = w
+		}
+	}
+	return maxW
+}
 
-	_, _ = fmt.Fprintf(w, "%s%-50s %s  %s\n", linePrefix, subject, operation, age)
+func (p *TreePrinter) printSubtree(w io.Writer, n *model.Node, linePrefix, childPrefix string, colWidth int) {
+	subject := formatSubject(n)
+	operations := p.formatOperations(n)
+	age := p.formatAge(n)
+
+	padding := colWidth - len(linePrefix) - len(subject)
+	if padding < 2 {
+		padding = 2
+	}
+	_, _ = fmt.Fprintf(w, "%s%s%*s%s  %s\n", linePrefix, subject, padding, "", operations, age)
 
 	for i, child := range n.Children {
 		isLast := i == len(n.Children)-1
@@ -84,8 +125,35 @@ func (p *TreePrinter) printSubtree(w io.Writer, n *model.Node, linePrefix, child
 			connector = childPrefix + treeBranch
 			nextPrefix = childPrefix + treeBar
 		}
-		p.printSubtree(w, child, connector, nextPrefix)
+		p.printSubtree(w, child, connector, nextPrefix, colWidth)
 	}
+}
+
+// formatOperations returns colorized operation names for a node,
+// including any sibling operations on the same subject.
+func (p *TreePrinter) formatOperations(n *model.Node) string {
+	ops := []string{n.IFO.Spec.Operation}
+	for _, sib := range n.Siblings {
+		ops = append(ops, sib.Spec.Operation)
+	}
+	slices.Sort(ops)
+	colored := make([]string, len(ops))
+	for i, op := range ops {
+		colored[i] = colorizeOperation(p.Color, op)
+	}
+	return strings.Join(colored, ", ")
+}
+
+// formatAge returns the age string using the oldest creation timestamp
+// across the primary IFO and any siblings.
+func (p *TreePrinter) formatAge(n *model.Node) string {
+	oldest := n.IFO.CreationTimestamp.Time
+	for _, sib := range n.Siblings {
+		if sib.CreationTimestamp.Time.Before(oldest) {
+			oldest = sib.CreationTimestamp.Time
+		}
+	}
+	return p.Color.Dim(FormatAge(oldest))
 }
 
 func colorizeOperation(c *ColorWriter, op string) string {
