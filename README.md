@@ -50,17 +50,50 @@ Administrators can query InFlightOperation resources to see at a glance what ope
 
 The `rules/` directory includes ready-to-use rulesets for common resource types:
 
-| RuleSet | Target | Component | Operations Detected |
-|---------|--------|-----------|-------------------|
-| vm-lifecycle-rules | `kubevirt.io/v1/virtualmachines` | kubevirt | Migrating, Starting, Stopping, Provisioning, Terminating, WaitingForReceiver |
-| vmi-rules | `kubevirt.io/v1/virtualmachineinstances` | kubevirt | Pending, Scheduling, Scheduled, Running, WaitingForSync, VCPUChange, MemoryChange |
-| vmim-rules | `kubevirt.io/v1/virtualmachineinstancemigrations` | kubevirt | Pending, Scheduling, Scheduled, Running, PreparingTarget |
-| datavolume-rules | `cdi.kubevirt.io/v1beta1/datavolumes` | kubevirt | Import, Clone, Upload, Expansion, and other CDI operations |
-| hco-rules | `hco.kubevirt.io/v1beta1/hyperconvergeds` | kubevirt | Deploying, Reconciling, Healing, Failing |
-| deployment-rules | `apps/v1/deployments` | — | Rollout in progress |
-| csv-rules | `operators.coreos.com/v1alpha1/clusterserviceversions` | olm | Pending, Installing, Replacing, Deleting, Failing |
-| installplan-rules | `operators.coreos.com/v1alpha1/installplans` | olm | Planning, Installing, RequiresApproval |
-| subscription-rules | `operators.coreos.com/v1alpha1/subscriptions` | olm | Unpacking, InstallPlanPending |
+**KubeVirt**
+
+| RuleSet | Target | Operations |
+|---------|--------|------------|
+| vm-lifecycle-rules | `kubevirt.io/v1/virtualmachines` | Migrating, Starting, Stopping, Provisioning, Terminating, WaitingForReceiver |
+| vmi-rules | `kubevirt.io/v1/virtualmachineinstances` | Pending, Scheduling, Scheduled, Running, WaitingForSync, Provisioning, VCPUChange, MemoryChange |
+| vmim-rules | `kubevirt.io/v1/virtualmachineinstancemigrations` | Pending, Scheduling, Scheduled, Running, PreparingTarget |
+| kubevirt-rules | `kubevirt.io/v1/kubevirts` | Deploying, Reconciling, ReconcilingDegraded, Healing, Failing, Deleting, Upgrading, UpdateRollingOut |
+| hco-rules | `hco.kubevirt.io/v1beta1/hyperconvergeds` | Deploying, Reconciling, ReconcilingDegraded, Healing, Failing |
+| cdi-rules | `cdi.kubevirt.io/v1beta1/cdis` | Deploying, Reconciling, ReconcilingDegraded, Healing, Failing, Deleting, Upgrading |
+| datavolume-rules | `cdi.kubevirt.io/v1beta1/datavolumes` | ImportScheduled, ImportInProgress, CloneScheduled, CloneInProgress, UploadScheduled, ExpansionInProgress, and 12 others |
+| ssp-rules | `ssp.kubevirt.io/v1beta3/ssps` | Deploying, Reconciling, ReconcilingDegraded, Healing, Failing, Paused, Deleting, Upgrading |
+| cnao-rules | `networkaddonsoperator.network.kubevirt.io/v1/networkaddonsconfigs` | Deploying, Reconciling, ReconcilingDegraded, Healing, Failing |
+| hpp-rules | `hostpathprovisioner.kubevirt.io/v1beta1/hostpathprovisioners` | Deploying, Reconciling, ReconcilingDegraded, Healing, Failing |
+| aaq-rules | `aaq.kubevirt.io/v1alpha1/aaqs` | Deploying, Reconciling, ReconcilingDegraded, Healing, Failing, Deleting, Upgrading |
+| vm-snapshot-rules | `snapshot.kubevirt.io/v1beta1/virtualmachinesnapshots` | InProgress, Failed |
+| vm-restore-rules | `snapshot.kubevirt.io/v1beta1/virtualmachinerestores` | InProgress, Failed |
+| vm-clone-rules | `clone.kubevirt.io/v1beta1/virtualmachineclones` | SnapshotInProgress, CreatingTargetVM, RestoreInProgress, Failed |
+| vm-export-rules | `export.kubevirt.io/v1beta1/virtualmachineexports` | Pending |
+
+**OLM**
+
+| RuleSet | Target | Operations |
+|---------|--------|------------|
+| csv-rules | `operators.coreos.com/v1alpha1/clusterserviceversions` | Pending, Installing, Replacing, Deleting, Failing |
+| installplan-rules | `operators.coreos.com/v1alpha1/installplans` | Planning, Installing, RequiresApproval |
+| subscription-rules | `operators.coreos.com/v1alpha1/subscriptions` | Unpacking, InstallPlanPending |
+
+**OpenShift**
+
+| RuleSet | Target | Operations |
+|---------|--------|------------|
+| clusterversion-rules | `config.openshift.io/v1/clusterversions` | Deploying, Reconciling, ReconcilingDegraded, Healing, Failing, NotUpgradeable, PartialUpdate |
+| clusteroperator-rules | `config.openshift.io/v1/clusteroperators` | Deploying, Reconciling, ReconcilingDegraded, Healing, Failing, NotUpgradeable |
+| machineconfigpool-rules | `machineconfiguration.openshift.io/v1/machineconfigpools` | Updating, UpdatingDegraded, Degraded, NodeDegraded, RenderDegraded, Paused, Building, BuildFailed |
+| machine-rules | `machine.openshift.io/v1beta1/machines` | Provisioning, Provisioned, Deleting, Failed |
+| machineset-rules | `machine.openshift.io/v1beta1/machinesets` | ScalingUp, ScalingDown |
+
+**Generic**
+
+| RuleSet | Target | Operations |
+|---------|--------|------------|
+| deployment-rules | `apps/v1/deployments` | Rollout |
+| pvc-rules | `v1/persistentvolumeclaims` | Pending, Lost, Resizing, FilesystemResizePending |
 
 ## Configuration
 
@@ -106,10 +139,51 @@ Status fields: `conditions`, `watchActive`, `lastEvaluationTime`, `observedGener
 | `spec.subject.name` | string | Yes | Name of the subject resource |
 | `spec.subject.namespace` | string | No | Namespace of the subject resource |
 | `spec.subject.uid` | string | No | UID of the subject resource |
+| `spec.subject.ownerReferences` | []OwnerReference | No | Owner references from the subject resource |
 
 Status fields: `phase` (Active/Completed), `lastDetected`, `completed`, `detectedBy`, `subjectGeneration`, `conditions`.
 
 Short names: `ifo`/`ifos` for InFlightOperation, `ors` for OperationRuleSet.
+
+## kubectl Plugin
+
+The `kubectl-ifo` plugin provides a CLI for viewing InFlightOperations. It is built as part of `make build` and can be installed to your PATH with `make install-plugin`.
+
+### Commands
+
+- `kubectl ifo list` — List InFlightOperations (default when no subcommand is given)
+- `kubectl ifo tree` — Show operations as a grouped tree (component → namespace → resource hierarchy)
+- `kubectl ifo get <name>` — Get a specific InFlightOperation
+- `kubectl ifo summary` — Show summary statistics across all operations
+
+### Flags
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--namespace` | `-n` | Filter by subject namespace |
+| `--component` | `-c` | Filter by component |
+| `--kind` | `-k` | Filter by subject kind |
+| `--operation` | `-o` | Filter by operation name |
+| `--all-phases` | `-A` | Include completed IFOs (default: active only) |
+| `--output` | `-O` | Output format: `table`, `wide`, `json`, `yaml` |
+| `--selector` | `-l` | Label selector (passthrough) |
+| `--color` | | Force ANSI color output |
+| `--no-color` | | Disable ANSI color output |
+| `--for` | | (tree only) Focus on a specific resource (`Kind/name`) |
+
+### Example
+
+```
+$ kubectl ifo tree
+kubevirt
+  openshift-cnv
+    HyperConverged/kubevirt-hyperconverged  Reconciling   3m
+    └── KubeVirt/kubevirt-kubevirt           Upgrading     2m
+
+olm
+  openshift-operator-lifecycle-manager
+    ClusterServiceVersion/my-operator.v2.0   Installing    45s
+```
 
 ## Development
 
@@ -122,11 +196,14 @@ make setup-test-e2e
 make test-e2e
 make cleanup-test-e2e
 
-# Build the binary
+# Build manager and plugin binaries
 make build
 
+# Install kubectl-ifo plugin to GOBIN
+make install-plugin
+
 # Build the container image
-make build-controller-image IMG=<image>
+make docker-build
 
 # Run linter
 make lint
@@ -139,13 +216,27 @@ make manifests generate
 
 InFlightOperation resources are labeled for easy querying:
 
+**Subject labels**
 - `ifo.kubevirt.io/subject-name` — Name of the subject resource
 - `ifo.kubevirt.io/subject-namespace` — Namespace of the subject resource
 - `ifo.kubevirt.io/subject-kind` — Kind of the subject resource
 - `ifo.kubevirt.io/subject-uid` — UID of the subject resource
+
+**Owner labels** (set when the subject has ownerReferences)
+- `ifo.kubevirt.io/owner-uid` — UID of the first owner
+- `ifo.kubevirt.io/owner-name` — Name of the first owner
+- `ifo.kubevirt.io/owner-kind` — Kind of the first owner
+- `ifo.kubevirt.io/owner-group` — API group of the first owner
+- `ifo.kubevirt.io/owner-version` — API version of the first owner
+
+**Operation labels**
 - `ifo.kubevirt.io/operation` — Operation name
 - `ifo.kubevirt.io/component` — Component name
 - `ifo.kubevirt.io/ruleset` — RuleSet name
+
+**Correlation labels** (for grouping related IFOs in tree views)
+- `ifo.kubevirt.io/correlation-group` — Groups related IFOs together
+- `ifo.kubevirt.io/correlation-role` — Role within a group (`root` or `child`)
 
 Example query — find all active operations on a specific VM:
 

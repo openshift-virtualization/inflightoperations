@@ -1,0 +1,175 @@
+Code Review — 2026-04-03
+========================
+
+Bugs
+----
+
+1. [HIGH] Reconciler continues after deletion finalization
+   File: internal/controller/operationruleset_controller.go:88-105
+
+   After successfully removing the finalizer on a deleted ORS (line 93),
+   the code falls through to line 107+ where it calls
+   BeginStagingConditions(), Validate(), and Status().Update() on an
+   object that's about to be garbage-collected. The deletion block should
+   return early:
+
+       if !operationRule.DeletionTimestamp.IsZero() {
+           // ...RemoveFinalizer...
+           r.Log.Info("Successfully finalized OperationRuleSet", ...)
+           return ctrl.Result{}, nil  // <-- missing
+       }
+
+   The Status().Update() at line 142 will likely fail with a conflict or
+   not-found error, which gets swallowed by err = nil in the defer. So
+   this is silent waste rather than a crash, but it's still wrong.
+
+
+2. [LOW] handle() returns stale error on success
+   File: internal/watch/watcher.go:199
+
+   The function returns err at line 199, but err is reassigned inside the
+   loop at lines 185, 191, 193. If the last iteration succeeds but a
+   prior one failed, err is nil -- fine. But if the last Ensure/Update
+   succeeds while a middle iteration failed, the continue at line 188/195
+   leaves err set to that middle error, then the final successful
+   iteration overwrites it. The real issue is: if the last operation in
+   the loop hits continue on line 195 (status update fails), err is
+   non-nil and gets returned, causing the informer event handler to log
+   it. But errors from non-last iterations are silently lost. This is
+   inconsistent -- either all errors should be aggregated or none should
+   be returned.
+
+
+3. [MEDIUM] len(subject) uses byte length, not rune count
+   File: pkg/plugin/output/tree.go:109,133,192
+
+   computeMaxWidth and printSubtree both use len(formatSubject(n)) for
+   the subject width. The subject is Kind/Name -- if either contains
+   non-ASCII characters (e.g., a resource name with Unicode), the byte
+   count will be larger than the visual width, and columns will misalign.
+   Should be displayWidth(formatSubject(n)) for consistency with how the
+   prefix width is computed on the same line.
+
+   Same issue exists in operationsWidth() at line 192 --
+   len(strings.Join(...)) should be displayWidth(...).
+
+
+Edge Cases
+----------
+
+4. [MEDIUM] allRoots mutates forest.Roots backing array
+   File: pkg/plugin/output/tree.go:34
+
+       allRoots := append(forest.Roots, forest.Orphans...)
+
+   If forest.Roots has spare capacity, this append writes orphans into
+   the Roots' backing array, mutating the original slice. If PrintForest
+   were called twice, or if the forest were used after rendering, this
+   would corrupt data. Safer:
+
+       allRoots := make([]*model.Node, 0, len(forest.Roots)+len(forest.Orphans))
+       allRoots = append(allRoots, forest.Roots...)
+       allRoots = append(allRoots, forest.Orphans...)
+
+
+5. [LOW] Debounce check skips stale IFOs
+   File: internal/watch/watcher.go:172-179
+
+       for _, ifo := range list.Items {
+           if !ifo.PastDebounceThreshold() {
+               _, found := detected[ifo.Spec.Operation]
+               if !found {
+                   r.markCompleted(ctx, subject, &ifo)
+
+   This marks an IFO as completed only when it's not past the debounce
+   threshold. IFOs that are past the threshold are silently skipped --
+   they're never completed and never cleaned up in this code path.
+   They'd only get cleaned up on the next event when Ensure() creates a
+   replacement. This means stale IFOs can linger if the subject stops
+   producing events.
+
+
+6. [LOW] --for grandchild lookup is hardcoded to 2 levels
+   File: pkg/plugin/cmd/tree.go:116-130
+
+   The recursive grandchild search does exactly one extra level
+   (children -> grandchildren). Deeper hierarchies (great-grandchildren)
+   are silently truncated. This should either be documented or made
+   recursive.
+
+
+7. [LOW] Type assertion silently returns nil error
+   File: internal/watch/watcher.go:135-138
+
+       subject, ok := obj.(*api.Subject)
+       if !ok {
+           return err  // err is nil here
+       }
+
+   If the type assertion fails (unexpected object type), this returns
+   nil -- the caller thinks everything is fine. Should probably log a
+   warning or return an error.
+
+
+Patterns Worth Noting
+---------------------
+
+8. [INFO] defer err = nil masks all errors
+   File: internal/controller/operationruleset_controller.go:73
+
+   Every reconciliation unconditionally sets err = nil in the defer,
+   meaning controller-runtime never sees failures and never applies its
+   own backoff/requeue logic. All error handling is pushed to manual
+   status conditions and RequeueAfter. This is a deliberate pattern, but
+   it means the controller's work queue metrics and error counters are
+   permanently zero, making operational monitoring harder.
+
+
+9. [INFO] Validate() always returns nil
+   File: internal/controller/operationruleset_controller.go:187
+
+   Validation errors are recorded as status conditions but never
+   returned as errors. The caller at line 110 checks if err != nil but
+   this can never be true for validation failures. The code works
+   because validation failures are detected later via
+   HasBlockerCondition(), but the Validate signature is misleading.
+
+
+10. [LOW] No duplicate detection in Operations.Ensure()
+    File: internal/watch/operations.go:73-98
+
+    Between List() and Create() there's a TOCTOU window. Two concurrent
+    informer events for the same subject could both see an empty list and
+    both create an IFO, producing duplicates. The label-based list on the
+    next cycle will find both and use the newest, so the older one becomes
+    orphaned until debounce expires. Low probability but worth being
+    aware of.
+
+
+11. [INFO] Only first owner reference is used for labels
+    File: internal/watch/operations.go:118
+
+    ownerRefs[0] is used for all owner labels. If a resource has multiple
+    owner references, only the first is reflected. The tree builder
+    (model/tree.go:48-54) also breaks on the first matching parent. Both
+    are consistent, but multi-owner scenarios will lose information.
+
+
+Summary
+-------
+
+  #   Severity   Category     Location
+  1   HIGH       Bug          operationruleset_controller.go:88-105
+  2   LOW        Bug          watcher.go:199
+  3   MEDIUM     Bug          tree.go:109,133,192
+  4   MEDIUM     Edge case    tree.go:34
+  5   LOW        Edge case    watcher.go:172
+  6   LOW        Edge case    cmd/tree.go:116
+  7   LOW        Edge case    watcher.go:135
+  8   INFO       Pattern      operationruleset_controller.go:73
+  9   INFO       Pattern      operationruleset_controller.go:187
+  10  LOW        Race         operations.go:73-98
+  11  INFO       Pattern      operations.go:118
+
+Items 1, 3, and 4 are the ones worth fixing first. The rest are
+low-impact or intentional design tradeoffs.
