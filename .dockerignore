@@ -8,6 +8,6 @@
 !settings
 !bundle
 !config/crd/bases
+!config/rbac
 !go.mod
 !go.sum
-!index_build*
