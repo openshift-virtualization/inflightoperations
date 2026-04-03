@@ -127,7 +127,7 @@ docker-build: ## Build docker image with the manager.
 	$(CONTAINER_TOOL) build -t $(CONTROLLER_IMAGE) .
 
 .PHONY: docker-push
-docker-push: build-controller-image ## Push docker image with the manager.
+docker-push: docker-build ## Push docker image with the manager.
 	$(CONTAINER_TOOL) push $(CONTROLLER_IMAGE)
 
 .PHONY: bundle
