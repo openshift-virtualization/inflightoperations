@@ -110,6 +110,11 @@ build: manifests generate fmt vet ## Build manager and plugin binaries.
 	go build -o bin/manager ./cmd/manager/main.go
 	go build -o bin/csv-generator ./cmd/csv-generator
 	go build -o bin/kubectl-ifo ./cmd/kubectl-ifo
+	go build -o bin/watch-role-generator ./cmd/watch-role-generator
+
+.PHONY: generate-watch-role
+generate-watch-role: build ## Regenerate config/rbac/watch_role.yaml from rules/.
+	bin/watch-role-generator --rules-dir=rules > config/rbac/watch_role.yaml
 
 .PHONY: install-plugin
 install-plugin: build ## Install kubectl-ifo plugin to GOBIN.
@@ -131,7 +136,7 @@ docker-push: docker-build ## Push docker image with the manager.
 	$(CONTAINER_TOOL) push $(CONTROLLER_IMAGE)
 
 .PHONY: bundle
-bundle: build ## Generate the OLM bundle.
+bundle: generate-watch-role ## Generate the OLM bundle.
 	bin/csv-generator \
 		--csv-version=$(VERSION) \
 		--namespace=inflightoperations-system \
