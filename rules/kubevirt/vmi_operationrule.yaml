@@ -22,10 +22,6 @@ spec:
       expression: |
         has(object.status) && has(object.status.phase) && object.status.phase == "Scheduled"
 
-    - operation: Running
-      expression: |
-        has(object.status) && has(object.status.phase) && object.status.phase == "Running"
-
     - operation: WaitingForSync
       expression: |
         has(object.status) && has(object.status.phase) && object.status.phase == "WaitingForSync"

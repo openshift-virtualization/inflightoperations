@@ -1,16 +1,16 @@
 apiVersion: ifo.kubevirt.io/v1alpha1
 kind: OperationRuleSet
 metadata:
-  name: aaq-rules
+  name: cnao-rules
 spec:
-  component: kubevirt
+  component: hco
   labels:
     ifo.kubevirt.io/correlation-group: hco-stack
     ifo.kubevirt.io/correlation-role: child
   target:
-    group: aaq.kubevirt.io
-    version: v1alpha1
-    resource: aaqs
+    group: networkaddonsoperator.network.kubevirt.io
+    version: v1
+    resource: networkaddonsconfigs
   rules:
     - operation: Deploying
       expression: |
@@ -47,13 +47,3 @@ spec:
         object.status.conditions.exists(c, c.type == "Available" && c.status == "False") &&
         object.status.conditions.exists(c, c.type == "Progressing" && c.status == "False") &&
         object.status.conditions.exists(c, c.type == "Degraded" && c.status == "True")
-    - operation: Deleting
-      expression: |
-        has(object.status) &&
-        has(object.status.phase) &&
-        object.status.phase == "Deleting"
-    - operation: Upgrading
-      expression: |
-        has(object.status) &&
-        has(object.status.phase) &&
-        object.status.phase == "Upgrading"

@@ -1,16 +1,16 @@
 apiVersion: ifo.kubevirt.io/v1alpha1
 kind: OperationRuleSet
 metadata:
-  name: kubevirt-rules
+  name: hpp-rules
 spec:
-  component: kubevirt
+  component: hco
   labels:
     ifo.kubevirt.io/correlation-group: hco-stack
     ifo.kubevirt.io/correlation-role: child
   target:
-    group: kubevirt.io
-    version: v1
-    resource: kubevirts
+    group: hostpathprovisioner.kubevirt.io
+    version: v1beta1
+    resource: hostpathprovisioners
   rules:
     - operation: Deploying
       expression: |
@@ -47,21 +47,3 @@ spec:
         object.status.conditions.exists(c, c.type == "Available" && c.status == "False") &&
         object.status.conditions.exists(c, c.type == "Progressing" && c.status == "False") &&
         object.status.conditions.exists(c, c.type == "Degraded" && c.status == "True")
-    - operation: Deleting
-      expression: |
-        has(object.status) &&
-        has(object.status.phase) &&
-        object.status.phase == "Deleting"
-    - operation: Upgrading
-      expression: |
-        has(object.status) &&
-        has(object.status.observedKubeVirtVersion) &&
-        has(object.status.targetKubeVirtVersion) &&
-        object.status.observedKubeVirtVersion != object.status.targetKubeVirtVersion
-    - operation: UpdateRollingOut
-      expression: |
-        has(object.status) &&
-        has(object.status.conditions) &&
-        object.status.conditions.exists(c, c.type == "Available" && c.status == "True") &&
-        has(object.status.outdatedVirtualMachineInstanceWorkloads) &&
-        object.status.outdatedVirtualMachineInstanceWorkloads > 0

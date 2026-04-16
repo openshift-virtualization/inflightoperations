@@ -3,7 +3,7 @@ kind: OperationRuleSet
 metadata:
   name: cdi-rules
 spec:
-  component: kubevirt
+  component: hco
   labels:
     ifo.kubevirt.io/correlation-group: hco-stack
     ifo.kubevirt.io/correlation-role: child
