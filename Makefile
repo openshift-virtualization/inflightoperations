@@ -111,10 +111,15 @@ build: manifests generate fmt vet ## Build manager and plugin binaries.
 	go build -o bin/csv-generator ./cmd/csv-generator
 	go build -o bin/kubectl-ifo ./cmd/kubectl-ifo
 	go build -o bin/watch-role-generator ./cmd/watch-role-generator
+	go build -o bin/ruleset-bundler ./cmd/ruleset-bundler
 
 .PHONY: generate-watch-role
 generate-watch-role: build ## Regenerate config/rbac/watch_role.yaml from rules/.
 	bin/watch-role-generator --rules-dir=rules > config/rbac/watch_role.yaml
+
+.PHONY: bundle-rulesets
+bundle-rulesets: build ## Bundle all OperationRuleSet files into dist/ruleset-bundle.yaml.
+	bin/ruleset-bundler --rules-dir=rules > dist/ruleset-bundle.yaml
 
 .PHONY: install-plugin
 install-plugin: build ## Install kubectl-ifo plugin to GOBIN.
