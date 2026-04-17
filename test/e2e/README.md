@@ -34,7 +34,7 @@ This will:
 
 | Test | What it verifies |
 |------|-----------------|
-| ORS reconciles to Ready | Applying `rules/deployment_operationrule.yaml` results in `Ready=True`, `watchActive=true`, and a finalizer |
+| ORS reconciles to Ready | Applying the deployment OperationRuleSet results in `Ready=True`, `watchActive=true`, and a finalizer |
 | Invalid CEL expression rejected | An ORS with bad CEL gets `InvalidRule` condition, not `Ready` |
 | ORS deletion cleanup | Deleting an ORS runs the finalizer and fully removes it |
 

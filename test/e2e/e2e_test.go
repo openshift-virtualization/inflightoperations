@@ -294,7 +294,7 @@ var _ = Describe("Manager", Ordered, func() {
 
 		It("should reconcile an OperationRuleSet to Ready", func() {
 			By("applying the deployment OperationRuleSet")
-			kubectlApply("rules/deployment_operationrule.yaml")
+			kubectlApply(testdataPath("ors-deployment.yaml"))
 
 			By("waiting for the OperationRuleSet to become Ready")
 			verifyReady := func(g Gomega) {
